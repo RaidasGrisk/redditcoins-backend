@@ -46,8 +46,9 @@ import praw
 import datetime
 
 # init
+# this should prob go into a class as an attr
+# leave it simple for now, so its easier to debug
 reddit = praw.Reddit(**reddit_details)
-
 api = PushshiftAPI(reddit)
 
 
@@ -97,139 +98,15 @@ def get_submission_data(id: str) -> list:
         #  returned from reddit is unique? if yes, use it as _id.
 
         attrs = [
-            # 'STR_FIELD',
-            # 'all_awardings',
-            # 'allow_live_comments',
-            # 'approved_at_utc',
-            # 'approved_by',
-            # 'archived',
-            # 'author',
-            # 'author_flair_background_color',
-            # 'author_flair_css_class',
-            # 'author_flair_richtext',
-            # 'author_flair_template_id',
-            # 'author_flair_text',
-            # 'author_flair_text_color',
-            # 'author_flair_type',
-            # 'author_fullname',
-            # 'author_patreon_flair',
-            # 'author_premium',
-            # 'awarders',
-            # 'banned_at_utc',
-            # 'banned_by',
-            # 'can_gild',
-            # 'can_mod_post',
-            # 'category',
-            # 'clear_vote',
-            # 'clicked',
-            # 'comment_limit',
-            # 'comment_sort',
-            # 'comments',
-            # 'content_categories',
-            # 'contest_mode',
-            # 'created',
-            'created_utc',
-            # 'crosspost',
-            # 'delete',
-            # 'disable_inbox_replies',
-            # 'discussion_type',
-            # 'distinguished',
-            # 'domain',
-            'downs',
-            # 'downvote',
-            # 'duplicates',
-            # 'edit',
-            # 'edited',
-            # 'enable_inbox_replies',
-            # 'flair',
-            # 'fullname',
-            # 'gild',
-            # 'gilded',
-            # 'gildings',
-            # 'hidden',
-            # 'hide',
-            # 'hide_score',
             'id',
-            # 'id_from_url',
-            # 'is_crosspostable',
-            # 'is_meta',
-            # 'is_original_content',
-            # 'is_reddit_media_domain',
-            # 'is_robot_indexable',
-            # 'is_self',
-            # 'is_video',
-            # 'likes',
-            # 'link_flair_background_color',
-            # 'link_flair_css_class',
-            # 'link_flair_richtext',
-            # 'link_flair_template_id',
-            # 'link_flair_text',
-            # 'link_flair_text_color',
-            # 'link_flair_type',
-            # 'locked',
-            # 'mark_visited',
-            # 'media',
-            # 'media_embed',
-            # 'media_only',
-            # 'mod',
-            # 'mod_note',
-            # 'mod_reason_by',
-            # 'mod_reason_title',
-            # 'mod_reports',
-            # 'name',
-            # 'no_follow',
-            'num_comments',
-            # 'num_crossposts',
-            # 'num_duplicates',
-            # 'num_reports',
-            # 'over_18',
-            # 'parent_whitelist_status',
-            # 'parse',
-            # 'permalink',
-            # 'pinned',
-            # 'pwls',
-            # 'quarantine',
-            # 'removal_reason',
-            # 'removed_by',
-            # 'removed_by_category',
-            # 'reply',
-            # 'report',
-            # 'report_reasons',
-            # 'save',
-            # 'saved',
-            # 'score',
-            # 'secure_media',
-            # 'secure_media_embed',
-            'selftext',
-            # 'selftext_html',
-            # 'send_replies',
-            # 'shortlink',
-            # 'spoiler',
-            # 'stickied',
-            # 'subreddit',  # this is an object
-            # 'subreddit_id',
+            'created_utc',
             'subreddit_name_prefixed',
-            # 'subreddit_subscribers',
-            # 'subreddit_type',
-            # 'suggested_sort',
-            # 'thumbnail',
-            # 'thumbnail_height',
-            # 'thumbnail_width',
-            'title',
-            # 'top_awarded_type',
+            'num_comments',
             'total_awards_received',
-            # 'treatment_tags',
-            # 'unhide',
-            # 'unsave',
             'ups',
-            # 'upvote',
-            # 'upvote_ratio',
-            # 'url',
-            # 'user_reports',
             'view_count',
-            # 'visited',
-            # 'whitelist_status',
-            # 'wls',
+            'title',
+            'selftext',
         ]
 
         return {key: getattr(submission, key) for key in attrs}
@@ -238,108 +115,20 @@ def get_submission_data(id: str) -> list:
         # parse the fields selected, we do not need all of it
         # [print("'", i, "'", ',', sep='') for i in dir(comment) if not i.startswith('_')]
         attrs = [
-            # 'MISSING_COMMENT_MESSAGE',
-            # 'STR_FIELD',
-            # 'all_awardings',
-            # 'approved_at_utc',
-            # 'approved_by',
-            # 'archived',
-            # 'associated_award',
-            # 'author',
-            # 'author_flair_background_color',
-            # 'author_flair_css_class',
-            # 'author_flair_richtext',
-            # 'author_flair_template_id',
-            # 'author_flair_text',
-            # 'author_flair_text_color',
-            # 'author_flair_type',
-            # 'author_fullname',
-            # 'author_patreon_flair',
-            # 'author_premium',
-            # 'awarders',
-            # 'banned_at_utc',
-            # 'banned_by',
-            # 'block',
-            'body',
-            # 'body_html',
-            # 'can_gild',
-            # 'can_mod_post',
-            # 'clear_vote',
-            # 'collapse',
-            # 'collapsed',
-            # 'collapsed_because_crowd_control',
-            # 'collapsed_reason',
-            # 'comment_type',
-            # 'controversiality',
-            # 'created',
-            'created_utc',
-            # 'delete',
-            'depth',
-            # 'disable_inbox_replies',
-            # 'distinguished',
-            'downs',
-            # 'downvote',
-            # 'edit',
-            # 'edited',
-            # 'enable_inbox_replies',
-            # 'fullname',
-            # 'gild',
-            # 'gilded',
-            # 'gildings',
             'id',
-            # 'id_from_url',
-            'is_root',
-            # 'is_submitter',
-            # 'likes',
             'link_id',
-            # 'locked',
-            # 'mark_read',
-            # 'mark_unread',
-            # 'mod',
-            # 'mod_note',
-            # 'mod_reason_by',
-            # 'mod_reason_title',
-            # 'mod_reports',
-            # 'name',
-            # 'no_follow',
-            # 'num_reports',
-            # 'parent',
             'parent_id',
-            # 'parse',
-            # 'permalink',
-            # 'refresh',
-            # 'removal_reason',
-            # 'replies',
-            # 'reply',
-            # 'report',
-            # 'report_reasons',
-            # 'save',
-            # 'saved',
-            'score',
-            # 'score_hidden',
-            # 'send_replies',
-            # 'stickied',
-            # 'submission',
-            # 'subreddit',
-            # 'subreddit_id',
-            # 'subreddit_name_prefixed',
-            # 'subreddit_type',
-            # 'top_awarded_type',
+            'is_root',
+            'depth',
+            'created_utc',
             'total_awards_received',
-            # 'treatment_tags',
-            # 'uncollapse',
-            # 'unsave',
             'ups',
-            # 'upvote',
-            # 'user_reports',
+            'body',
         ]
 
         return {key: getattr(comment, key) for key in attrs}
 
-    # pull data using praw
     sub = reddit.submission(id)
-
-    # parse submission
     sub_data = parse_submission(sub)
 
     if sub._comments:
@@ -425,11 +214,10 @@ def get_reddit_data(start: datetime.datetime,
         del data_batch
 
 
-def test():
+def test_and_print():
 
-    # the following is a generator yielding data chunks
     data = get_reddit_data(
-        start=datetime.datetime.now() - datetime.timedelta(minutes=60*4),
+        start=datetime.datetime.now() - datetime.timedelta(minutes=15),
         end=datetime.datetime.now(),
         subreddit='wallstreetbets'
     )
@@ -439,54 +227,3 @@ def test():
 
         # here we would push chunks to local db
         print(json.dumps(chunk, indent=4))
-
-
-# ------- #
-# ------- #
-# PushshiftAPI
-# debug and try other methods
-
-#
-# def debug_and_test_other_ways():
-#
-#     # helpers
-#     def parse_timestamp(ts: float) -> str:
-#         str_format = '%Y-%m-%d %H:%M:%S'
-#         return datetime.datetime.fromtimestamp(ts).strftime(str_format)
-#
-#     # get submissions: PushshiftAPI
-#     subs = api.search_submissions(filter=['id'], subreddit='wallstreetbets', limit=2)
-#     [print(sub.d_) for sub in list(subs)]
-#
-#     # the following seems to be returning only 1 day old comments?
-#     coms = api.search_comments(subreddit='wallstreetbets', limit=2)
-#     [print(parse_timestamp(com.created), '|', com.id, '|', com.body[:50], '|', '|') for com in list(coms)]
-#
-#     # ------- #
-#     # ------- #
-#     # PRAW
-#     # debug and try other methods
-#
-#     # recurse through the comments of a comment
-#     def parse_comments(comment, depth=0):
-#         print(' '*depth, parse_timestamp(comment.created), comment.id, comment.body[:10])
-#         for rep in comment.replies:
-#             depth += 1
-#             parse_comments(rep, depth)
-#
-#     for sub in reddit.subreddit('learnpython').hot(limit=2):
-#
-#         time = parse_timestamp(sub.created)
-#         print(time, '|', sub.id, '|', sub.title[:5], '|', sub.selftext[:5])
-#
-#         # deal with comments that are not loaded into the request
-#         # this will result in addition network request
-#         sub.comments.replace_more(limit=5)
-#
-#         # this should be recursive because some comments will have
-#         # many comments that will be commented (actually, replied to)
-#         # Also it can be done in other ways as shown:
-#         # https://praw.readthedocs.io/en/latest/tutorials/comments.html
-#         for com in sub.comments:
-#             parse_comments(com, depth=1)
-#

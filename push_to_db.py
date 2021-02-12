@@ -43,5 +43,6 @@ def main() -> None:
             # TODO: make each doc of similar structure, now subs and comms differ.
             db_client.reddit.data.insert_many(batch_flattened)
 
+            print('Approx ts of last reddit item inserted into db:')
             ts = batch_flattened[0]['created_utc']
-            print(f'Last approx TS of submission {ts}')
+            print(f'{ts}')
