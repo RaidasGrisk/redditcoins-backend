@@ -42,14 +42,16 @@ Querying twice (and more) instead of once is not optimal?
 
 from private import reddit_details
 from psaw import PushshiftAPI
-import praw
+from typing import List
+import asyncpraw
 import datetime
+import asyncio
 
 # init
 # this should prob go into a class as an attr
 # leave it simple for now, so its easier to debug
-reddit = praw.Reddit(**reddit_details)
-api = PushshiftAPI(reddit)
+reddit = asyncpraw.Reddit(**reddit_details)
+api = PushshiftAPI()
 
 
 # sometimes pushshiftAPI db has delay
@@ -63,7 +65,7 @@ def check_time_since_last_comment_in_pushshiftAPI() -> None:
 
 # ------ #
 
-def get_submission_ids(subreddit: str, before: int, after: int, **kwargs: any) -> list:
+def get_submission_ids(subreddit: str, before: int, after: int, **kwargs: any) -> List[str]:
     """
     :param subreddit: subreddit name as on the app
     :param before: int (!) timestamp
@@ -84,13 +86,13 @@ def get_submission_ids(subreddit: str, before: int, after: int, **kwargs: any) -
     return [sub.id for sub in subs]
 
 
-def get_submission_data(id: str) -> list:
+async def get_submission(reddit: asyncpraw.Reddit, id: str) -> List[dict]:
     """
     :param id: a submission id
     :return: list of dicts with: where each item is submission + its comment/s
     """
 
-    def parse_submission(submission: praw.reddit.Submission) -> dict:
+    def parse_submission(submission: asyncpraw.reddit.Submission) -> dict:
         # parse the fields selected, we do not need all of it
         # [print("'", i, "'", ',', sep='') for i in dir(submission) if not i.startswith('_')]
 
@@ -111,7 +113,7 @@ def get_submission_data(id: str) -> list:
 
         return {key: getattr(submission, key) for key in attrs}
 
-    def parse_comment(comment: praw.reddit.Comment) -> dict:
+    def parse_comment(comment: asyncpraw.reddit.Comment) -> dict:
         # parse the fields selected, we do not need all of it
         # [print("'", i, "'", ',', sep='') for i in dir(comment) if not i.startswith('_')]
         attrs = [
@@ -128,22 +130,45 @@ def get_submission_data(id: str) -> list:
 
         return {key: getattr(comment, key) for key in attrs}
 
-    sub = reddit.submission(id)
+    sub = await reddit.submission(id)
     sub_data = parse_submission(sub)
 
-    if sub._comments:
+    comments = await sub.comments()
+    if comments:
 
         # deal with comments that are not loaded into the request
         # this will result in additional network request
-        sub.comments.replace_more(limit=5)
+        await comments.replace_more(limit=5)
 
-        # sub.comments.list() returns a list where all top level
+        # comments.list() returns a list where all top level
         # comments are listed first, then second level comments and so on
         # this is not a problem as we can parse parent_id and depth level
-        comments = sub.comments.list()
-        comments_ = [parse_comment(com) for com in comments]  # why Union!?
+        comments = comments.list()
+        comments_ = [parse_comment(com) for com in await comments]  # why Union!?
 
-    return [sub_data] if not sub._comments else [sub_data] + comments_
+    return [sub_data] if not comments else [sub_data] + comments_
+
+
+def get_submissions(sub_ids: list, reddit_details: dict) -> list:
+
+    async def fetch_submissions(sub_ids, reddit_details):
+        # make each sub_id request into a task and
+        # gather all tasks together
+
+        # have to include init of reddit object inside the async loop
+        # else async loop raise an error. Should improve this fix :/
+        reddit = asyncpraw.Reddit(**reddit_details)
+
+        tasks = set()
+        for id in sub_ids:
+            tasks.add(
+                asyncio.create_task(get_submission(reddit, id))
+            )
+        return await asyncio.gather(*tasks)
+
+    # run all tasks and return list of results
+    return asyncio.run(fetch_submissions(sub_ids, reddit_details))
+
 
 # ------- #
 # combine methods to make a final function
@@ -151,16 +176,27 @@ def get_submission_data(id: str) -> list:
 
 def get_reddit_data(start: datetime.datetime,
                     end: datetime.datetime,
-                    subreddit: str
-                    ) -> list:
+                    subreddit: str,
+                    delta: datetime.timedelta = datetime.timedelta(hours=1)
+                    ) -> List[List[dict]]:
+
+    # returns List[List[dict]] where:
+    # [[{sub}, {comm}, {comm} ..], [{sub}, {comm}, {comm} ...], ...]
+
+    # Warning:
+    # Make sure to set delta not too large as
+    # data from ids in the range of single delta
+    # will be fetched asynchronously.
+    # so if delta = 1 day and 200 subs are made in one day,
+    # it will make approx 200 * 1 sub requests at once
+    # (not including additional requests to get comments).
 
     # Issues:
-
     # How to properly filter out removed/deleted submissions.
     # As of now, there seems to be no way to check if sub is
     # deleted/removed before the first request to PushshiftAPI
     # (get_submission_ids). This info is only available after
-    # the second request to PRAW (get_submission_data).
+    # the second request to PRAW (get_submission).
 
     # querying PushshiftAPI for long date intervals results in weird outputs
     # so the following solution to split each interval to fixed time chunks
@@ -184,12 +220,8 @@ def get_reddit_data(start: datetime.datetime,
     intervals = split_date_interval_to_chunks(
         start=start,
         end=end,
-        delta=datetime.timedelta(minutes=60)
+        delta=delta
     )
-
-    # TODO: should consider async because the following is very slow
-    # https://praw.readthedocs.io/en/latest/getting_started/ \
-    # multiple_instances.html#discord-bots-and-asynchronous-environments
 
     # pull data
     for start_, end_ in intervals:
@@ -201,29 +233,32 @@ def get_reddit_data(start: datetime.datetime,
             'num_comments': '>5',  # 1st might be admin removal notice
         }
 
-        # pull a list of submission ids
+        # pull a list of submission ids from PushshiftAPI
+        # pull submission details from PRAW
         sub_ids = get_submission_ids(**submission_params)
-
-        # pull submission data
-        data_batch = []
-        for sub_id in sub_ids:
-            data = get_submission_data(sub_id)
-            data_batch.append(data)
+        data_batch = get_submissions(sub_ids, reddit_details)
 
         yield data_batch
         del data_batch
 
 
-def test_and_print():
+def test_and_print() -> None:
 
     data = get_reddit_data(
-        start=datetime.datetime.now() - datetime.timedelta(minutes=15),
+        start=datetime.datetime.now() - datetime.timedelta(hours=22),
         end=datetime.datetime.now(),
-        subreddit='wallstreetbets'
+        subreddit='wallstreetbets',
+        delta=datetime.timedelta(hours=6)
     )
 
     import json
     for chunk in data:
 
+        # check some stats
+        total = 0
+        for c in chunk:
+            total += len(c)
+        print(f'# subs: {len(chunk)}, # subs+comments {total}', )
+
         # here we would push chunks to local db
-        print(json.dumps(chunk, indent=4))
+        print(json.dumps(chunk[0][0], indent=4))
