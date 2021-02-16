@@ -138,6 +138,7 @@ async def get_submission(reddit: asyncpraw.Reddit, id: str) -> List[dict]:
 
         # deal with comments that are not loaded into the request
         # this will result in additional network request
+        # TODO: try except status for http size limit hit
         await comments.replace_more(limit=0)
 
         # comments.list() returns a list where all top level
