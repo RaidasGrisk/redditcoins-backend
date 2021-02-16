@@ -138,7 +138,7 @@ async def get_submission(reddit: asyncpraw.Reddit, id: str) -> List[dict]:
 
         # deal with comments that are not loaded into the request
         # this will result in additional network request
-        await comments.replace_more(limit=5)
+        await comments.replace_more(limit=0)
 
         # comments.list() returns a list where all top level
         # comments are listed first, then second level comments and so on
@@ -176,20 +176,11 @@ def get_submissions(sub_ids: list, reddit_details: dict) -> list:
 
 def get_reddit_data(start: datetime.datetime,
                     end: datetime.datetime,
-                    subreddit: str,
-                    delta: datetime.timedelta = datetime.timedelta(hours=1)
-                    ) -> List[List[dict]]:
+                    subreddit: str
+) -> List[List[dict]]:
 
     # returns List[List[dict]] where:
     # [[{sub}, {comm}, {comm} ..], [{sub}, {comm}, {comm} ...], ...]
-
-    # Warning:
-    # Make sure to set delta not too large as
-    # data from ids in the range of single delta
-    # will be fetched asynchronously.
-    # so if delta = 1 day and 200 subs are made in one day,
-    # it will make approx 200 * 1 sub requests at once
-    # (not including additional requests to get comments).
 
     # Issues:
     # How to properly filter out removed/deleted submissions.
@@ -198,67 +189,35 @@ def get_reddit_data(start: datetime.datetime,
     # (get_submission_ids). This info is only available after
     # the second request to PRAW (get_submission).
 
-    # querying PushshiftAPI for long date intervals results in weird outputs
-    # so the following solution to split each interval to fixed time chunks
+    submission_params = {
+        'subreddit': subreddit,
+        'after': int(start.timestamp()),
+        'before': int(end.timestamp()),
+        'num_comments': '>5',  # 1st might be admin removal notice
+    }
 
-    def split_date_interval_to_chunks(
-            start: datetime.datetime,
-            end: datetime.datetime,
-            delta: datetime.timedelta
-    ) -> list:
+    # pull a list of submission ids from PushshiftAPI
+    # pull submission details from PRAW
+    sub_ids = get_submission_ids(**submission_params)
+    data_batch = get_submissions(sub_ids, reddit_details)
 
-        last_start, last_end = start, start
-        time_chunks = []
-        while last_end < end:
-            last_end = last_start + delta
-            time_chunks.append([last_start, last_end])
-            last_start += delta
-
-        return time_chunks
-
-    # make time intervals
-    intervals = split_date_interval_to_chunks(
-        start=start,
-        end=end,
-        delta=delta
-    )
-
-    # pull data
-    for start_, end_ in intervals:
-
-        submission_params = {
-            'subreddit': subreddit,
-            'after': int(start_.timestamp()),
-            'before': int(end_.timestamp()),
-            'num_comments': '>5',  # 1st might be admin removal notice
-        }
-
-        # pull a list of submission ids from PushshiftAPI
-        # pull submission details from PRAW
-        sub_ids = get_submission_ids(**submission_params)
-        data_batch = get_submissions(sub_ids, reddit_details)
-
-        yield data_batch
-        del data_batch
+    return data_batch
 
 
 def test_and_print() -> None:
 
     data = get_reddit_data(
-        start=datetime.datetime.now() - datetime.timedelta(hours=22),
+        start=datetime.datetime.now() - datetime.timedelta(hours=6),
         end=datetime.datetime.now(),
         subreddit='wallstreetbets',
-        delta=datetime.timedelta(hours=6)
     )
 
+    # check some stats
+    total = 0
+    for sub in data:
+        total += len(sub)
+    print(f'# subs: {len(data)}, # subs+comments {total}', )
+
+    # here we would push chunks to local db
     import json
-    for chunk in data:
-
-        # check some stats
-        total = 0
-        for c in chunk:
-            total += len(c)
-        print(f'# subs: {len(chunk)}, # subs+comments {total}', )
-
-        # here we would push chunks to local db
-        print(json.dumps(chunk[0][0], indent=4))
+    print(json.dumps(data[0][0], indent=4))
