@@ -13,6 +13,7 @@ Example of reddit entry in the db:
         'body': 'asd',
         'ups': 5,
         'is_root': True,
+        'created_utc': 1610922785,
         ...
     },
 
@@ -96,7 +97,7 @@ def modify_submission_key_names(func) -> Callable:
 
     def wrapper(batch: List[dict]) -> List[dict]:
         for item in batch:
-            if item.get('selftext', None):
+            if 'selftext' in item:
                 item['body'] = item.pop('selftext')
         return func(batch)
 
