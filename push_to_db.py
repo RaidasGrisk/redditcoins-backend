@@ -22,7 +22,10 @@ Example of reddit entry in the db:
     // must not be overwritten by db refresh
     'metadata': {
         'sentiment': 1,
-        'topics': ['AMC', 'BTC'],
+        'topics': {
+            'direct': ['AMC'],
+            'indirect: ['BTC']
+        },
         ...
     }
 }
@@ -169,9 +172,9 @@ def main() -> None:
 
         # now batch = [[{sub}, {comm}, {comm} ..], [{sub}, {comm}, {comm} ...], ...]
         # lets make it flat and insert whole batch into db
-        flatten_list = lambda list_: [i for j in list_ for i in
-                                      flatten_list(j)] if type(list_) is list else [list_]
-        batch = flatten_list(batch)
+        flatten = lambda list_: [i for j in list_ for i in
+                                 flatten(j)] if type(list_) is list else [list_]
+        batch = flatten(batch)
 
         # filter, edit, etc. before push
         batch = before_db_push(batch)
@@ -181,7 +184,11 @@ def main() -> None:
         # update already existing docs, so the following solution
 
         result = db_client.reddit.data.bulk_write([
-            UpdateOne({'_id': item['_id']}, {'$set': {'data': item}}, upsert=True) for item in batch
+            UpdateOne(
+                {'_id': item['_id']},
+                {'$set': {'data': item}},
+                upsert=True
+            ) for item in batch
         ])
 
         # del to limit printing space and exclude data inserted
