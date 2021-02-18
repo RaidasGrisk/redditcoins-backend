@@ -1,38 +1,3 @@
-"""
-
-Example of reddit entry in the db:
-
-{
-
-    // reddit id
-    '_id': '4g8ads',
-
-    // this part is raw reddit data, can be easily
-    // over-writen while refreshing the db
-    'data': {
-        'body': 'asd',
-        'ups': 5,
-        'is_root': True,
-        'created_utc': 1610922785,
-        ...
-    },
-
-    // this part is made by other models:
-    // sentiment, topic assignment, etc.
-    // must not be overwritten by db refresh
-    'metadata': {
-        'sentiment': 1,
-        'topics': {
-            'direct': ['AMC'],
-            'indirect: ['BTC']
-        },
-        ...
-    }
-}
-
-
-"""
-
 from private import mongo_details
 from pymongo import MongoClient, UpdateOne
 from get_reddit_data import get_reddit_data
@@ -182,7 +147,6 @@ def main() -> None:
         # inset into db
         # can not just do insert_many as this will not let
         # update already existing docs, so the following solution
-
         result = db_client.reddit.data.bulk_write([
             UpdateOne(
                 {'_id': item['_id']},
@@ -194,3 +158,7 @@ def main() -> None:
         # del to limit printing space and exclude data inserted
         del result.bulk_api_result['upserted']
         print(start_.date(), end_.date(), result.bulk_api_result)
+
+
+if __name__ == '__main__':
+    main()
