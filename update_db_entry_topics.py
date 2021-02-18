@@ -122,12 +122,10 @@ def update_topics_of_child_docs() -> None:
         projection=sub_projection
     )
 
+    # pull whole submission
+    # link_id - submission id
+    # parent_id - parent comment
     for sub in sub_cursor:
-        print(sub)
-
-        # 1. pull whole submission
-        # link_id - submission id
-        # parent_id - parent comment
 
         com_query = {
             'data.link_id': {
@@ -151,6 +149,9 @@ def update_topics_of_child_docs() -> None:
         full_sub = [sub] + [com for com in com_cursor]
         [print(i) for i in full_sub]
         print('\n'*2)
+
+        # at this point full submission
+        # is stored in a list. Now the hard part.
 
 
 # --------- #
@@ -200,8 +201,27 @@ def test():
 
     ]
 
+    def has_children(item, full_sub):
+        # assuming full_sub is sorted by depth
+        # iter thought docs below and check if
+        # current item _id is in any parent_id
+        for _, item_ in enumerate(full_sub):
+            if item_['data']['parent_id'][3:] == item['_id']:
+                return True
+        return False
 
-    def recurse(full_sub, topics_accum=set([])):
+    def get_topics(item):
+        # this is badly implemented :/
+        topics = []
+        if item.get('metadata', None):
+            if item['metadata'].get('topics', None):
+                if item['metadata']['topics'].get('direct', None):
+                    topics.append(item['metadata']['topics']['direct'])
+                if item['metadata']['topics'].get('indirect', None):
+                    topics.append(item['metadata']['topics']['indirect'])
+            return topics[0]
+
+    def recurse():
 
         # assuming that full_sub list
         # is sorted by data.depth field
@@ -218,18 +238,19 @@ def test():
         # pop last topics to my indirect topics
         # and move up the ladder to parent
 
-        parent_id = full_sub[0]['_id']
-        for child_candidate in full_sub[1:]:
-            if parent_id in child_candidate['data']['parent_id']:
-                print(len(full_sub), parent_id, child_candidate['_id'])
+        topic_tree = []
+        for index, item in enumerate(full_sub):
 
-                # check if parent has topics
-                if full_sub[0].get('metadata', {}).get('topics', {}).get('direct', None):
-                    [topics_accum.add(topic) for topic in full_sub[0]['metadata']['topics']['direct']]
-                    print(topics_accum)
+            # to increase speed check only items
+            # below the current one, like this: full_sub[index + 1:]
+            if has_children(item, full_sub[index + 1:]):
+                topics = get_topics(item)
+                if topics:
+                    topic_tree.append(topics)
+                    print(item['_id'], 'current topics', topic_tree)
 
-        if len(full_sub[1:]) > 1:
-            recurse(full_sub[1:], topics_accum)
-
-    [print(i) for i in full_sub]
+            # does not have children
+            # how do we move back the same track to root?
+            else:
+                print(item['_id'], topic_tree.pop())
 
