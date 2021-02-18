@@ -158,14 +158,17 @@ def get_submissions(sub_ids: list, reddit_details: dict) -> list:
 
         # have to include init of reddit object inside the async loop
         # else async loop raise an error. Should improve this fix :/
-        reddit = asyncpraw.Reddit(**reddit_details)
+        reddit_session = asyncpraw.Reddit(**reddit_details)
 
-        tasks = set()
-        for id in sub_ids:
-            tasks.add(
-                asyncio.create_task(get_submission(reddit, id))
-            )
-        return await asyncio.gather(*tasks)
+        # use context or else the session above will not be closed
+        # and warning/errors will pop for each request or session
+        async with reddit_session as reddit:
+            tasks = set()
+            for id in sub_ids:
+                tasks.add(
+                    asyncio.create_task(get_submission(reddit, id))
+                )
+            return await asyncio.gather(*tasks)
 
     # run all tasks and return list of results
     return asyncio.run(fetch_submissions(sub_ids, reddit_details))
