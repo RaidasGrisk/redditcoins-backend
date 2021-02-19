@@ -101,16 +101,15 @@ def split_date_interval_to_chunks(
     return time_chunks
 
 
-def main() -> None:
+def main(
+        subreddit='wallstreetbets',
+        start=datetime.datetime.now() - datetime.timedelta(days=22),
+        end=datetime.datetime.now(),
+        delta=datetime.timedelta(hours=4)
+) -> None:
 
     # db connection
     db_client = MongoClient(**mongo_details)
-
-    # init params
-    subreddit = 'wallstreetbets'
-    end = datetime.datetime.now()
-    start = datetime.datetime.now() - datetime.timedelta(days=20)
-    delta = datetime.timedelta(hours=3)
 
     # make time intervals
 
@@ -144,21 +143,37 @@ def main() -> None:
         # filter, edit, etc. before push
         batch = before_db_push(batch)
 
-        # inset into db
-        # can not just do insert_many as this will not let
-        # update already existing docs, so the following solution
-        result = db_client.reddit.data.bulk_write([
-            UpdateOne(
-                {'_id': item['_id']},
-                {'$set': {'data': item}},
-                upsert=True
-            ) for item in batch
-        ])
+        # skip if get_reddit_data returns an empty list
+        # else pymongo.errors.InvalidOperation: No operations to execute
+        # deal with missing data later
+        if batch:
+            with db_client:
+                # inset into db
+                # can not just do insert_many as this will not let
+                # update already existing docs, so the following solution
+                result = db_client.reddit.data.bulk_write([
+                    UpdateOne(
+                        {'_id': item['_id']},
+                        {'$set': {'data': item}},
+                        upsert=True
+                    ) for item in batch
+                ])
 
-        # del to limit printing space and exclude data inserted
-        del result.bulk_api_result['upserted']
-        print(start_.date(), end_.date(), result.bulk_api_result)
+        if result:
+            # pop to limit printing space and exclude data inserted
+            result.bulk_api_result.pop('upserted', None)
+            print(start_.date(), end_.date(), result.bulk_api_result)
+        else:
+            print(start_.date(), end_.date(), 'Failed to get data')
 
 
 if __name__ == '__main__':
+
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('subreddit', type=str, default='wallstreetbets')
+    # parser.add_argument('start', type=str, default='2020-02-01')
+    # parser.add_argument('end', type=str, default='2020-03-01')
+    # parser.add_argument('delta', type=str, default='12 hours')
+    # args = parser.parse_args()
+
     main()
