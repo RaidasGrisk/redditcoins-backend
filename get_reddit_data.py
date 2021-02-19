@@ -150,7 +150,7 @@ async def get_submission(reddit: asyncpraw.Reddit, id: str) -> List[dict]:
     return [sub_data] if not comments else [sub_data] + comments_
 
 
-def get_submissions(sub_ids: list, reddit_details: dict) -> list:
+def get_submissions(sub_ids: List[str], reddit_details: dict) -> list:
 
     async def fetch_submissions(sub_ids, reddit_details):
         # make each sub_id request into a task and
@@ -158,11 +158,11 @@ def get_submissions(sub_ids: list, reddit_details: dict) -> list:
 
         # have to include init of reddit object inside the async loop
         # else async loop raise an error. Should improve this fix :/
-        reddit_session = asyncpraw.Reddit(**reddit_details)
+        reddit = asyncpraw.Reddit(**reddit_details)
 
         # use context or else the session above will not be closed
         # and warning/errors will pop for each request or session
-        async with reddit_session as reddit:
+        async with reddit:
             tasks = set()
             for id in sub_ids:
                 tasks.add(
