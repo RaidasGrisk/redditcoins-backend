@@ -2,8 +2,16 @@
 ```
 docker-compose up
 ```
-db connection and interface details are stored in ```docker-compose.yml``` and ```private.py```. Reddit and Mongo credentials are stored inside ```./private.py``` (make this yourself).
+Mongo connection and interface details are stored in ```docker-compose.yml```.
 
+
+# Pull and push data to db
+
+```
+python reddit_to_db.py
+```
+
+Reddit and Mongo credentials are stored inside ```./private.py``` (make this file before running the above command).
 
 ```
 # https://www.reddit.com/dev/api/
@@ -19,11 +27,6 @@ mongo_details = {
     'username': 'admin',
     'password': 'pass',
 }
-```
-
-# Pull and push data to db
-```
-python reddit_to_db.py
 ```
 
 # Update reddit topics and sentiment
