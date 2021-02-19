@@ -25,7 +25,7 @@ python update_db_sentiment.py
     // duplicate of data.id
     '_id': '4g8ads',
 
-    // this part is raw reddit data, can be easily
+    // this part is raw reddit data, must be easily
     // over-writen while refreshing the db so do not 
     // store anything else but raw data here
     'data': {
@@ -39,8 +39,8 @@ python update_db_sentiment.py
     // this part is made by other models
     // sentiment, topic assignment, etc.
     // must not be overwritten by db refresh
-    // update this only by running code on 
-    // above data part
+    // update this by running expensive 
+    // code dependent on the above data
     'metadata': {
         'sentiment': 1,
         'topics': {
