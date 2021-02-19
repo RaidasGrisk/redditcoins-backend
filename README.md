@@ -6,6 +6,7 @@ db connection and interface details are stored in ```docker-compose.yml``` and `
 
 
 ```
+# https://www.reddit.com/dev/api/
 reddit_details = {
     'client_id': 'CLIENT_ID',
     'client_secret': 'CLIENT_SECRET',
@@ -22,13 +23,13 @@ mongo_details = {
 
 # Pull and push data to db
 ```
-python push_to_db.py
+python reddit_to_db.py
 ```
 
 # Update reddit topics and sentiment
 ```
-python update_db_topics.py
-python update_db_sentiment.py
+python other_ops/update_direct_topics.py
+python other_ops/update_sentiment.py
 ```
 
 # DB doc structure
