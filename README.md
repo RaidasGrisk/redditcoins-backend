@@ -2,8 +2,23 @@
 ```
 docker-compose up
 ```
-db connection and interface details are stored in ```docker-compose.yml``` and ```private.py```
+db connection and interface details are stored in ```docker-compose.yml``` and ```private.py```. Reddit and Mongo credentials are stored inside ```./private.py``` (make this yourself).
 
+
+```
+reddit_details = {
+    'client_id': 'CLIENT_ID',
+    'client_secret': 'CLIENT_SECRET',
+    'user_agent': 'my user agent'
+}
+
+mongo_details = {
+    'host': '0.0.0.0',
+    'port': 27017,
+    'username': 'admin',
+    'password': 'pass',
+}
+```
 
 # Pull and push data to db
 ```
