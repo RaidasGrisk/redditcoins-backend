@@ -15,7 +15,25 @@ topics = {
     'SDOW': ['sdow'],
     'SQQQ': ['sqqq'],
     'SRTY': ['srty'],
-    'WSB': ['wsb']
+    'WSB': ['wsb'],
+
+    'GOOGL': ['googl'],
+    'AMZN': ['amzn'],
+    'AAPL': ['aapl'],
+    'NFLX': ['nflx'],
+    'MSFT': ['msft'],
+    'TSLA': ['tsla'],
+    'NVDA': ['nvda'],
+    'TECH': ['tech'],
+    'INTC': ['intc'],
+    'BABA': ['baba'],
+    'PYPL': ['pypl'],
+    'CSCO': ['csco'],
+    'MTCH': ['mtch'],
+    'ADBE': ['adbe'],
+    'DBX': ['dbx'],
+    'QQQ': ['qqq'],
+    'CRM': ['crm']
 }
 
 
@@ -28,8 +46,7 @@ async def update_topics() -> None:
 
     # move through all the docs and do the thing
     cur = db_client.reddit.data.find({})
-    for doc in await cur.to_list(None):
-
+    async for doc in cur:
         new_topic_present = False
         first_doc_pass = True
 
@@ -54,7 +71,10 @@ async def update_topics() -> None:
                     # the first pass of topic find
                     if first_doc_pass:
                         first_doc_pass = False
-                        if 'metadata' not in doc:
+                        # also check if direct key is in metadata
+                        # this is due to different format before
+                        if 'metadata' not in doc or \
+                                'direct' not in doc['metadata']:
                             doc['metadata'] = {
                                 'topics': {
                                     'direct': [],
@@ -77,6 +97,9 @@ async def update_topics() -> None:
             total_updates += 1
 
         total_docs += 1
+        if total_docs % 10000 == 0:
+            print(f'total docs scanned: {total_docs}')
+
     print(f'total docs: {total_docs} total updates: {total_updates}')
 
 
