@@ -3,6 +3,7 @@ from pymongo import MongoClient, UpdateOne
 from get_reddit_data import get_reddit_data
 import datetime
 from typing import List, Callable
+import argparse
 
 
 # The following decorators takes in a list of dicts and
@@ -105,7 +106,7 @@ def main(
         subreddit='wallstreetbets',
         start=datetime.datetime.now() - datetime.timedelta(days=22),
         end=datetime.datetime.now(),
-        delta=datetime.timedelta(hours=4)
+        delta=datetime.timedelta(hours=12)
 ) -> None:
 
     # db connection
@@ -123,6 +124,8 @@ def main(
     # so if delta = 1 day and 200 subs are made in one day,
     # it will make approx 200 * 1 sub requests at once
     # (not including additional requests to get comments).
+    # ok this has been updated to 5000 concurrent requests.
+    # lets keep it this way, so we do not hammer pushshift.
 
     intervals = split_date_interval_to_chunks(
         start=start,
@@ -159,21 +162,30 @@ def main(
                     ) for item in batch
                 ])
 
-        if result:
-            # pop to limit printing space and exclude data inserted
-            result.bulk_api_result.pop('upserted', None)
-            print(start_.date(), end_.date(), result.bulk_api_result)
+            if result:
+                # pop to limit printing space and exclude data inserted
+                result.bulk_api_result.pop('upserted', None)
+                print(start_.date(), end_.date(), result.bulk_api_result)
         else:
-            print(start_.date(), end_.date(), 'Failed to get data')
+            print(start_.date(), end_.date(), 'No data')
 
 
+# python reddit_to_db.py --start 2020-03-17 --end 2020-03-18 --delta 12
 if __name__ == '__main__':
 
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('subreddit', type=str, default='wallstreetbets')
-    # parser.add_argument('start', type=str, default='2020-02-01')
-    # parser.add_argument('end', type=str, default='2020-03-01')
-    # parser.add_argument('delta', type=str, default='12 hours')
-    # args = parser.parse_args()
+    # parse args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--subreddit', type=str, default='wallstreetbets')
+    parser.add_argument('--start', type=str, default='2020-02-01')
+    parser.add_argument('--end', type=str, default='2020-03-01')
+    parser.add_argument('--delta', type=int, default=12)
+    args = parser.parse_args()
 
-    main()
+    # deal with args format
+    args_dict = vars(args)
+    args_dict['start'] = datetime.datetime.strptime(args_dict['start'], '%Y-%m-%d')
+    args_dict['end'] = datetime.datetime.strptime(args_dict['end'], '%Y-%m-%d')
+    args_dict['delta'] = datetime.timedelta(hours=args_dict['delta'])
+
+    # run the thing
+    main(**args_dict)
