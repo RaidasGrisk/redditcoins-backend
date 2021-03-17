@@ -1,43 +1,16 @@
+# to be able to launch this from terminal
+import sys, os
+sys.path.append(os.getcwd())
+
 from private import mongo_details
 import motor.motor_asyncio
 import asyncio
+import argparse
+import datetime, time
+from topics import topics
 
 
-# TODO: use regex for speed and accuracy
-topics = {
-    'GME': ['gme', 'gamestop', 'gamestonk'],
-    'AMC': ['amc'],
-    'PLTR': ['pltr', 'palantir'],
-    'SPY': ['spy'],
-    'DOGE': ['dogecoin'],
-    'crypto': ['coin', 'cypto', 'mining'],
-    'UVXY': ['uvxy'],
-    'SDOW': ['sdow'],
-    'SQQQ': ['sqqq'],
-    'SRTY': ['srty'],
-    'WSB': ['wsb'],
-
-    'GOOGL': ['googl'],
-    'AMZN': ['amzn'],
-    'AAPL': ['aapl'],
-    'NFLX': ['nflx'],
-    'MSFT': ['msft'],
-    'TSLA': ['tsla'],
-    'NVDA': ['nvda'],
-    'TECH': ['tech'],
-    'INTC': ['intc'],
-    'BABA': ['baba'],
-    'PYPL': ['pypl'],
-    'CSCO': ['csco'],
-    'MTCH': ['mtch'],
-    'ADBE': ['adbe'],
-    'DBX': ['dbx'],
-    'QQQ': ['qqq'],
-    'CRM': ['crm']
-}
-
-
-async def update_topics() -> None:
+async def update_topics(start: int = None, end: int = None) -> None:
 
     # db connection
     db_client = motor.motor_asyncio.AsyncIOMotorClient(**mongo_details)
@@ -45,7 +18,13 @@ async def update_topics() -> None:
     total_docs = 0
 
     # move through all the docs and do the thing
-    cur = db_client.reddit.data.find({})
+    time_filter = {
+        '$and': [
+            {'data.created_utc': {'$gte': start}} if start else {},
+            {'data.created_utc': {'$lte': end}} if end else {}
+        ]}
+    print(time_filter)
+    cur = db_client.reddit.data.find(time_filter)
     async for doc in cur:
         new_topic_present = False
         first_doc_pass = True
@@ -103,5 +82,27 @@ async def update_topics() -> None:
     print(f'total docs: {total_docs} total updates: {total_updates}')
 
 
+def date_string_to_timestamp(s: str) -> int:
+    date = datetime.datetime.strptime(s, '%Y-%m-%d')
+    tuple = date.timetuple()
+    return int(time.mktime(tuple))
+
+
 if __name__ == '__main__':
-    asyncio.run(update_topics())
+
+    # parse args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--start', type=str, default=None)
+    parser.add_argument('--end', type=str, default=None)
+    args = parser.parse_args()
+
+    # deal with args format
+    args_dict = vars(args)
+    if args_dict['start']:
+        args_dict['start'] = date_string_to_timestamp(args_dict['start'])
+    if args_dict['end']:
+        args_dict['end'] = date_string_to_timestamp(args_dict['end'])
+
+    print(args_dict)
+
+    asyncio.run(update_topics(**args_dict))
