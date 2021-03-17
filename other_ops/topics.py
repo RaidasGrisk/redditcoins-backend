@@ -1,10 +1,13 @@
 
+# keys are topic names to be saved in docs
+# where topic is present, values are lower
+# case strings to be found in doc text fields
 topics = {
     'GME': {'gme', 'gamestop', 'gamestonk'},
     'AMC': {'amc'},
     'PLTR': {'pltr', 'palantir'},
     'SPY': {'spy'},
-    'DOGE': {'dogecoin'},
+    'DOGE': {'doge, dogecoin'},
     'crypto': {'coin', 'cypto', 'mining'},
     'UVXY': {'uvxy'},
     'SDOW': {'sdow'},
