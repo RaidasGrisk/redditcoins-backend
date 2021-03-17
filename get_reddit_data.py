@@ -46,6 +46,8 @@ from typing import List
 import asyncpraw
 import datetime
 import asyncio
+from aiohttp import ClientSession, TCPConnector
+from asyncprawcore import Requestor
 
 # init
 # this should prob go into a class as an attr
@@ -138,7 +140,8 @@ async def get_submission(reddit: asyncpraw.Reddit, id: str) -> List[dict]:
 
         # deal with comments that are not loaded into the request
         # this will result in additional network request
-        # TODO: try except status for http size limit hit
+        # sometimes asyncprawcore.exceptions.RequestException
+        # is raised. Catch it and try for a couple of times..?
         await comments.replace_more(limit=0)
 
         # comments.list() returns a list where all top level
@@ -158,7 +161,18 @@ def get_submissions(sub_ids: List[str], reddit_details: dict) -> list:
 
         # have to include init of reddit object inside the async loop
         # else async loop raise an error. Should improve this fix :/
-        reddit = asyncpraw.Reddit(**reddit_details)
+        # TODO: something has to be done with Timeouts due to large
+        #  number of concurrent requests. Adding try/excepts on each
+        #  request in get_submission function seems lame. Maybe solve
+        #  this with custom client with limited concurrent connections:
+        #  aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=10))
+        reddit = asyncpraw.Reddit(
+            **reddit_details,
+            requestor_class=Requestor,
+            requestor_kwargs={
+                'session': ClientSession(connector=TCPConnector(limit=5000))
+            }
+        )
 
         # use context or else the session above will not be closed
         # and warning/errors will pop for each request or session
