@@ -173,11 +173,15 @@ def main(
 # python reddit_to_db.py --start 2020-03-17 --end 2020-03-18 --delta 12
 if __name__ == '__main__':
 
+    # set default values
+    start = datetime.datetime.now() - datetime.timedelta(hours=12)
+    end = datetime.datetime.now()
+
     # parse args
     parser = argparse.ArgumentParser()
     parser.add_argument('--subreddit', type=str, default='wallstreetbets')
-    parser.add_argument('--start', type=str, default='2020-02-01')
-    parser.add_argument('--end', type=str, default='2020-03-01')
+    parser.add_argument('--start', type=str, default=start.strftime('%Y-%m-%d'))
+    parser.add_argument('--end', type=str, default=end.strftime('%Y-%m-%d'))
     parser.add_argument('--delta', type=int, default=12)
     args = parser.parse_args()
 
