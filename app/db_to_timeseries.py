@@ -1,7 +1,16 @@
+'''
+TODO:
+1. Work on indexing the db
+2. Work on limiting the query results
+3. Think of better db structure to lower compute cost
+
+'''
+
 from private import mongo_details
-from pymongo import MongoClient
+import motor.motor_asyncio
 import pandas as pd
 import time
+import asyncio
 
 
 def date_string_to_timestamp(s: str) -> int:
@@ -10,7 +19,7 @@ def date_string_to_timestamp(s: str) -> int:
     return int(time.mktime(tuple))
 
 
-def get_timeseries_df(
+async def get_timeseries_df(
         start: str,
         end: str,
         ticker: str,
@@ -21,60 +30,69 @@ def get_timeseries_df(
 ) -> pd.Series:
 
     # db connection
-    db_client = MongoClient(**mongo_details)
+    db_client = motor.motor_asyncio.AsyncIOMotorClient(**mongo_details)
 
     # cast str dates to ts as in db
     start = date_string_to_timestamp(start)
     end = date_string_to_timestamp(end)
 
-    with db_client:
-
-        # count by date
-        cur = db_client.reddit.data.aggregate([
-            {  # match specific fields
-                '$match': {'$and': [
-                    {'metadata.topics.direct': {'$in': [ticker]}},
-                    {'data.created_utc': {'$gte': start}},
-                    {'data.created_utc': {'$lte': end}},
-                    {'data.ups': {'$gte': ups}},
-                    # TODO: think of a way to properly combine these two opts
-                    {'data.title': {'$exists': True if submissions else False}},
-                    {'data.parent_id': {'$exists': True if comments else False}},
-                ]}
-            },
-            {  # group by
-                '$group': {
-                    # double timestamp to date:
-                    # https://medium.com/idomongodb/mongodb-unix-timestamp-to-isodate-67741ab32078
-                    '_id': {'$toDate': {'$multiply': ['$data.created_utc', 1000]}},
-                    'total': {'$sum': 1}
-                }
+    # agg. very likely can be improved
+    # serves just as temp solution
+    cur = db_client.reddit.data.aggregate([
+        {
+            '$match': {'$and': [
+                {'metadata.topics.direct': {'$in': [ticker]}},
+                {'data.created_utc': {'$gte': start}},
+                {'data.created_utc': {'$lte': end}},
+                {'data.ups': {'$gte': ups}},
+                # TODO: think of a way to properly combine these two opts
+                {'data.title': {'$exists': True if submissions else False}},
+                {'data.parent_id': {'$exists': True if comments else False}},
+            ]}
+        },
+        {
+            '$group': {
+                # double timestamp to date:
+                # https://medium.com/idomongodb/mongodb-unix-timestamp-to-isodate-67741ab32078
+                '_id': {'$toDate': {'$multiply': ['$data.created_utc', 1000]}},
+                'volume': {'$sum': 1}
             }
-        ])
+        }
+    ])
 
     # convert to DataFrame to be able to
     # simply group by specified granularity
-    df = pd.DataFrame(cur).set_index('_id')
+    df = pd.DataFrame([i async for i in cur]).set_index('_id')
     # granularity options: 'Y', 'M', 'W', 'D', 'H', '5H', 'min', '30min', etc
     df_ = df.groupby(pd.Grouper(freq=granularity)).sum()
-    return df_['total']
+
+    # modify index attributes
+    # by default index values are datetime64[ns]
+    # upon conversion to json (pd.to_json)
+    # these values are converted to timestamps: int
+    # to prevent this, lets cast these values to str
+    df_.index = df_.index.astype(str)
+
+    # when aggregating the index key must be set to _id
+    # after aggregation rename it to time for later use
+    df_.index = df_.index.rename('time')
+
+    return df_
 
 
-def test():
+def test() -> None:
 
-    ts_df = get_timeseries_df(
-        start='2021-03-01',
+    df = asyncio.run(get_timeseries_df(
+        start='2017-03-01',
         end='2021-03-20',
         ticker='GME',
         ups=10,
         submissions=False,
         comments=True,
         granularity='1H'
-    )
-    
-    # convert to str, else to_json will convert it to ts
-    ts_df.index = ts_df.index.astype(str)
-    ts_df.to_json()
+    ))
+
+    print(df.reset_index().to_dict(orient='records'))
 
 
 '''
