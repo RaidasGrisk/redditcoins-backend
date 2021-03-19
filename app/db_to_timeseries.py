@@ -11,6 +11,7 @@ import motor.motor_asyncio
 import pandas as pd
 import time
 import asyncio
+from typing import Union
 
 
 def date_string_to_timestamp(s: str) -> int:
@@ -20,9 +21,9 @@ def date_string_to_timestamp(s: str) -> int:
 
 
 async def get_timeseries_df(
+        ticker: Union[str, None],
         start: str,
         end: str,
-        ticker: str,
         ups: int,
         submissions: bool,
         comments: bool,
@@ -41,7 +42,7 @@ async def get_timeseries_df(
     cur = db_client.reddit.data.aggregate([
         {
             '$match': {'$and': [
-                {'metadata.topics.direct': {'$in': [ticker]}},
+                {'metadata.topics.direct': {'$in': [ticker]}} if ticker else {},
                 {'data.created_utc': {'$gte': start}},
                 {'data.created_utc': {'$lte': end}},
                 {'data.ups': {'$gte': ups}},
@@ -83,9 +84,9 @@ async def get_timeseries_df(
 def test() -> None:
 
     df = asyncio.run(get_timeseries_df(
+        ticker='GME',
         start='2017-03-01',
         end='2021-03-20',
-        ticker='GME',
         ups=10,
         submissions=False,
         comments=True,
