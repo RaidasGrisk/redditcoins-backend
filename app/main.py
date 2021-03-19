@@ -12,7 +12,7 @@ from other_ops.topics import topics
 # ok we need to parse ticker names and validate
 # that provided ticker is indeed valid and exists in db
 # TODO: this is too long and rendered docs are fucked
-valid_tickers = '|'.join(topics.keys())
+valid_tickers = '|'.join(list(topics.keys()) + ['None'])
 
 # valid granularity values
 # TODO: this is not a complete list but lets keep
@@ -39,12 +39,14 @@ class DataModelOut(BaseModel):
     ]
 
 
-@app.get('/{ticker}', response_model=DataModelOut)
-async def timeseries(
+@app.get('/volume/{ticker}', response_model=DataModelOut)
+async def mention_volume(
         ticker: str = Path(
             ...,
             title='ticker',
-            description='The name of the ticker e.g. NVDA, TSLA, GME',
+            description='The name of the ticker e.g. NVDA, TSLA, GME. <br>'
+                        'There is a special case: when ticker is set to NONE <br>'
+                        'all available tickers are included and combined together.',
             # regex=f'({valid_tickers})',
             include_in_schema=False
         ),
@@ -76,9 +78,16 @@ async def timeseries(
 ) -> dict:
 
     df = await get_timeseries_df(
+        # okay, why do we need this NONE thing?
+        # the thing is, we want to be able to get the
+        # volume of all the tickers combined together.
+        # This let us scale the data: NVDA_vol / NONE_vol.
+        # Now we can know that NVDA subs account for X%
+        # of total subs during a period. This info is way
+        # more valuable in ML models than raw counts NVDA_vol.
+        ticker=None if ticker == 'NONE' else ticker,
         start=start,
         end=end,
-        ticker=ticker,
         ups=ups,
         submissions=submissions,
         comments=comments,
@@ -88,3 +97,8 @@ async def timeseries(
     return {
         'data': df.reset_index().to_dict(orient='records')
     }
+
+
+@app.get('/sentiment/{ticker}')
+async def sentiment():
+    pass
