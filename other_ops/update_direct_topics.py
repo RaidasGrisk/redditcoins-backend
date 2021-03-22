@@ -8,35 +8,41 @@ import asyncio
 import argparse
 import datetime, time
 import re
+from typing import Set
 from other_ops.topics import main as get_topics
 
 
-def does_match(full_text, text_parts):
+def get_regex_pattern(text_parts: Set[str]) -> re.Pattern:
     """
-    lets do some matching following this logic
     https://stackoverflow.com/questions/6713310/regex-specify-space-or-start-of-string-and-space-or-end-of-string
-    (^|\s) would match space or start of string and ($|\s) for space or end of string. Together it's:
+    (^|\s) would match space or start of string and
+    ($|\s) for space or end of string. Together it's:
     (^|\s)stackoverflow($|\s)
 
-    for multiple possible matches modify the middle as so: (stackoverflow|flow|stack)
-    lets add more or cases in front of the ticker for example matching $ticker (^|\s|[$])
-    so now the following triggers a match: 'tsla', ' tsla', ' tsla ', '$tsla', '$tsla '
+    for multiple possible matches modify the
+    middle as so: (stackoverflow|flow|stack)
+    lets add more or cases in front of the ticker
+    for example matching $ticker (^|\s|[$])
+    so now the following triggers a match:
+    'tsla', ' tsla', ' tsla ', '$tsla', '$tsla '
     """
 
     # make regex string by inserting possible text_parts
     text_parts_joined = "|".join(text_parts)
-    regex_string = f'(^|\s|[$])({text_parts_joined})($|\s)'
-    return re.search(regex_string, full_text)
+    regex_pattern = f'(^|\s|[$])({text_parts_joined})($|\s)'
+    regex_pattern = re.compile(regex_pattern)
+    return regex_pattern
 
 
-def match_debug_test():
+def debug_regex_matching() -> None:
 
-    text_parts = {'fb', 'facebook'}
-    full_texts = ['fbfoo foofb foofbbar fbfoofb fbfbfb',
-                 'fb', 'foo fb', 'foo $fb', 'foo$fb']
+    text_parts = {'FB', 'facebook'}
+    full_texts = ['FBfoo fooFB fooFBbar FBfooFB FBFBFB',
+                 'FB', 'foo FB', 'foo $FB', 'foo$FB']
 
+    pattern = get_regex_pattern(text_parts)
     for full_text in full_texts:
-        if does_match(full_text, text_parts):
+        if pattern.search(full_text):
             print('Match:', full_text, text_parts)
         else:
             print('No match:', full_text, text_parts)
@@ -49,8 +55,21 @@ async def update_topics(start: int = None, end: int = None) -> None:
     total_updates = 0
     total_docs_scanned = 0
 
-    # get topics to look for
+    # get topics and do things to increase the speed
     topics = get_topics()
+
+    # the following is to increase the speed perf:
+    # before looping over each topic, combine all
+    # possible matches into a single re pattern
+    # will search this pattern first, and if found
+    # will do a full scan over each topic separately
+    all_topics_re_string = {topic for topics in topics.values() for topic in topics}
+    all_topics_re_string = get_regex_pattern(all_topics_re_string)
+    all_topics_re_pattern = re.compile(all_topics_re_string)
+
+    # pre compile every re pattern so that
+    # we do this only once before the main loop
+    topics_re_compiled = {topic: get_regex_pattern(values) for topic, values in topics.items()}
 
     # move through all the docs and do the thing
     time_filter = {
@@ -74,35 +93,42 @@ async def update_topics(start: int = None, end: int = None) -> None:
                 doc_text += '//' + doc['data'][field]
 
         # loop over topics
-        # TODO: speed perf bottleneck right here ↓
-        #  if there are many topics >1000 the speed is
-        #  misserable, decent speed only with 100< topics
-        for topic_key, topic_vals in topics.items():
+        # when simply looping over each topic and looking
+        # for matches, when then number of topics increase
+        # the speed is reduced dramatically.
+        # here's an idea how to speed things up:
+        # instead of looping over each topic, concat
+        # topic_vals together and do single regex search
+        # per doc. Then if match is hit, find the
+        # corresponding key.
+        if all_topics_re_pattern.search(doc_text):
 
-            # check if topic is present in doc_text
-            if does_match(doc_text, topic_vals):
+            for topic_key, topic_re_pattern in topics_re_compiled.items():
 
-                # check if metadata fields exist and add if not
-                # this will only trigger for new docs
-                # use first_doc_pass to check only once during
-                # the first pass of topic find
-                if first_doc_pass:
-                    first_doc_pass = False
-                    # also check if direct key is in metadata
-                    # this is due to different format before
-                    if 'metadata' not in doc or \
-                            'direct' not in doc['metadata']:
-                        doc['metadata'] = {
-                            'topics': {
-                                'direct': [],
-                                'indirect': []
+                # check if topic is present in doc_text
+                if topic_re_pattern.search(doc_text):
+
+                    # check if metadata fields exist and add if not
+                    # this will only trigger for new docs
+                    # use first_doc_pass to check only once during
+                    # the first pass of topic find
+                    if first_doc_pass:
+                        first_doc_pass = False
+                        # also check if direct key is in metadata
+                        # this is due to different format before
+                        if 'metadata' not in doc or \
+                                'direct' not in doc['metadata']:
+                            doc['metadata'] = {
+                                'topics': {
+                                    'direct': [],
+                                    'indirect': []
+                                }
                             }
-                        }
 
-                # add topic
-                if topic_key not in doc['metadata']['topics']['direct']:
-                    doc['metadata']['topics']['direct'] += [topic_key]
-                    new_topic_present = True
+                    # add topic
+                    if topic_key not in doc['metadata']['topics']['direct']:
+                        doc['metadata']['topics']['direct'] += [topic_key]
+                        new_topic_present = True
 
         # update the doc
         # should better use db_client.reddit.data.bulk_write ?
@@ -139,7 +165,6 @@ async def wipe_topics(start: int = None, end: int = None) -> None:
     )
 
     print(f'matched: {result.matched_count} modified {result.modified_count}')
-
 
 
 def date_string_to_timestamp(s: str) -> int:
