@@ -14,29 +14,9 @@ def nasdaq_topics() -> dict:
 
     file = get_nasdaq_file()
 
-    def clean_name(name):
-        name = name.split('-')[0]
-        name = name.replace('Company', '')
-        name = name.replace('Inc', '')
-        name = name.replace('Corporation', '')
-        name = name.replace('Corp', '')
-        name = name.replace('Ltd', '')
-        name = name.replace('N.A.', '')
-        name = name.replace('A/S', '')
-        name = name.replace('A/S', '')
-        name = name.replace('A/S', '')
-        name = name.replace('A/S', '')
-        name = name.replace('A/S', '')
-        name = name.replace('Group', '')
-        name = re.sub(r'\W+', ' ', name)
-        name = name.strip()
-        return name
-
-    file['Security Name'] = file['Security Name'].apply(lambda x: clean_name(x))
-
     topics = {}
-    for ticker, name in zip(file['Symbol'].tolist(), file['Security Name']):
-        topics[ticker] = {ticker.upper(), name.lower()}
+    for ticker in file['Symbol'].tolist():
+        topics[ticker] = {ticker.upper()}
 
     return topics
 
@@ -103,7 +83,7 @@ def main() -> dict:
 
     }
 
-    topics_nasdaq = {} #nasdaq_topics()
+    topics_nasdaq = nasdaq_topics()
     topics_nasdaq = clean_bad_tickers_and_words(topics_nasdaq)
 
     # do topics | topics_nasdaq for 3.9 py
