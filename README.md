@@ -1,9 +1,8 @@
 # Init mongo db and mongo-express
 ```
-docker-compose up
+docker-compose -f docker-compose-db.yml up
 ```
-Mongo connection and interface details are stored in ```docker-compose.yml```.
-
+Mongo connection and interface details are stored in ```docker-compose-db.yml```.
 
 # Pull and push data to db
 
@@ -27,12 +26,6 @@ mongo_details = {
     'username': 'admin',
     'password': 'pass',
 }
-```
-
-# Update reddit topics and sentiment
-```
-python other_ops/update_direct_topics.py
-python other_ops/update_sentiment.py
 ```
 
 # DB doc structure
@@ -69,4 +62,20 @@ python other_ops/update_sentiment.py
         ...
     }
 }
+```
+
+# Update reddit topics and sentiment
+```
+python other_ops/update_direct_topics.py
+python other_ops/update_sentiment.py
+```
+
+# Build and deploy API
+
+Build and run FastAPI server in docker container
+```
+
+docker build --tag api -f Dockerfile-api .
+docker run -d -p 80:80 api
+
 ```
