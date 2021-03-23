@@ -7,12 +7,12 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 from app.db_to_timeseries import get_timeseries_df
-from other_ops.topics import topics
+from other_ops.topics import main as get_topics
 
 # ok we need to parse ticker names and validate
 # that provided ticker is indeed valid and exists in db
 # TODO: this is too long and rendered docs are fucked
-valid_tickers = '|'.join(list(topics.keys()) + ['None'])
+valid_tickers = '|'.join(list(get_topics().keys()) + ['None'])
 
 # valid granularity values
 # TODO: this is not a complete list but lets keep
@@ -22,8 +22,16 @@ valid_tickers = '|'.join(list(topics.keys()) + ['None'])
 granularities = ['Y', 'M', 'W', 'D', 'H', '6H', '2H']
 valid_granularity = '|'.join(granularities)
 
+# valid subreddits
+subreddits = ['wallstreetbets']
+valid_subreddits = '|'.join(subreddits)
 
-app = FastAPI()
+
+app = FastAPI(
+    title='Ticker data from Reddit',
+    description='Get ticker mention counts / sentiment from reddit subs',
+    version='0.0.1'
+)
 
 
 @app.get('/')
@@ -39,16 +47,22 @@ class DataModelOut(BaseModel):
     ]
 
 
-@app.get('/volume/{ticker}', response_model=DataModelOut)
-async def mention_volume(
+@app.get('/volume/{subreddit}/{ticker}', response_model=DataModelOut)
+async def vol(
         ticker: str = Path(
             ...,
             title='ticker',
-            description='The name of the ticker e.g. NVDA, TSLA, GME. <br>'
+            description='The name of the ticker e.g. NVDA, TSLA, GME. <br><br>'
                         'There is a special case: when ticker is set to NONE <br>'
-                        'all available tickers are included and combined together.',
+                        'total number of submissions / comments is returned <br>'
+                        'irrespective of ticker mentions. Useful for data scaling.',
             # regex=f'({valid_tickers})',
             include_in_schema=False
+        ),
+        subreddit: str = Path(
+            'wallstreetbets',
+            description='The subreddit to fetch data from',
+            regex=f'{valid_subreddits}'
         ),
         start: str = Query(
             ...,
@@ -76,7 +90,7 @@ async def mention_volume(
             regex=f'({valid_granularity})',
         )
 ) -> dict:
-
+    print(subreddit)
     df = await get_timeseries_df(
         # okay, why do we need this NONE thing?
         # the thing is, we want to be able to get the
@@ -99,6 +113,6 @@ async def mention_volume(
     }
 
 
-@app.get('/sentiment/{ticker}')
+@app.get('/sentiment/{subreddit}/{ticker}')
 async def sentiment():
     pass
