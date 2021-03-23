@@ -1,5 +1,4 @@
 import pandas as pd
-import re
 
 
 # TODO: function naming and cleaning logic below suck.
@@ -26,7 +25,7 @@ def clean_bad_tickers_and_words(topics: dict) -> dict:
     # to fix them :D these create weird cases that
     # are hard to solve and require unique exceptions
     tickers_to_rm = ['VS', 'UK', 'SO', 'PS', 'PI',
-                     'ON', 'HA', 'GO', 'EH', 'CD']
+                     'ON', 'HA', 'GO', 'EH', 'CD', 'Z']
 
     texts_to_rm = ['on', '']
 
