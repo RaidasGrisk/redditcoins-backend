@@ -48,7 +48,11 @@ def debug_regex_matching() -> None:
             print('No match:', full_text, text_parts)
 
 
-async def update_topics(start: int = None, end: int = None) -> None:
+async def update_topics(
+        start: int = None,
+        end: int = None,
+        subreddit: str = 'wallstreetbets'
+) -> None:
 
     # db connection
     db_client = motor.motor_asyncio.AsyncIOMotorClient(**mongo_details)
@@ -78,8 +82,8 @@ async def update_topics(start: int = None, end: int = None) -> None:
             {'data.created_utc': {'$lte': end}} if end else {}
         ]}
 
-    total_docs = await db_client.reddit.data.count_documents(time_filter)
-    cur = db_client.reddit.data.find(time_filter)
+    total_docs = await db_client.reddit[subreddit].count_documents(time_filter)
+    cur = db_client.reddit[subreddit].find(time_filter)
     async for doc in cur:
         new_topic_present = False
         first_doc_pass = True
@@ -133,7 +137,7 @@ async def update_topics(start: int = None, end: int = None) -> None:
         # update the doc
         # should better use db_client.reddit.data.bulk_write ?
         if new_topic_present:
-            _ = await db_client.reddit.data.update_one(
+            _ = await db_client.reddit[subreddit].update_one(
                 {'_id': doc['_id']},
                 {'$set': {'metadata': doc['metadata']}}
             )
@@ -149,7 +153,11 @@ async def update_topics(start: int = None, end: int = None) -> None:
             )
 
 
-async def wipe_topics(start: int = None, end: int = None) -> None:
+async def wipe_topics(
+        start: int = None,
+        end: int = None,
+        subreddit: str = 'wallstreetbets'
+) -> None:
 
     # db connection
     db_client = motor.motor_asyncio.AsyncIOMotorClient(**mongo_details)
@@ -162,7 +170,7 @@ async def wipe_topics(start: int = None, end: int = None) -> None:
             {'metadata.topics': {'$exists': True}}
         ]}
 
-    result = await db_client.reddit.data.update_many(
+    result = await db_client.reddit[subreddit].update_many(
         filter,
         {'$set': {'metadata.topics': {'direct': [], 'indirect': []}}}
     )
@@ -180,6 +188,7 @@ if __name__ == '__main__':
 
     # parse args
     parser = argparse.ArgumentParser()
+    parser.add_argument('--subreddit', type=str, default='wallstreetbets')
     parser.add_argument('--start', type=str, default=None)
     parser.add_argument('--end', type=str, default=None)
     parser.add_argument('--wipe_topics', type=bool, default=False)

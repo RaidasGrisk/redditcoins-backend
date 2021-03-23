@@ -154,7 +154,7 @@ def main(
                 # inset into db
                 # can not just do insert_many as this will not let
                 # update already existing docs, so the following solution
-                result = db_client.reddit.data.bulk_write([
+                result = db_client.reddit[subreddit].bulk_write([
                     UpdateOne(
                         {'_id': item['_id']},
                         {'$set': {'data': item}},

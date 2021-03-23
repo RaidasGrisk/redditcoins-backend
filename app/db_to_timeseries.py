@@ -21,6 +21,7 @@ def date_string_to_timestamp(s: str) -> int:
 
 
 async def get_timeseries_df(
+        subreddit: str,
         ticker: Union[str, None],
         start: str,
         end: str,
@@ -39,7 +40,7 @@ async def get_timeseries_df(
 
     # agg. very likely can be improved
     # serves just as temp solution
-    cur = db_client.reddit.data.aggregate([
+    cur = db_client.reddit[subreddit].aggregate([
         {
             '$match': {'$and': [
                 {'metadata.topics.direct': {'$in': [ticker]}} if ticker else {},
@@ -84,6 +85,7 @@ async def get_timeseries_df(
 def test() -> None:
 
     df = asyncio.run(get_timeseries_df(
+        subreddit='wallstreetbets',
         ticker='GME',
         start='2017-03-01',
         end='2021-03-20',
