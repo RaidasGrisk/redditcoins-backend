@@ -8,7 +8,7 @@ Mongo connection and interface details are stored in ```docker-compose.yml```.
 # Pull and push data to db
 
 ```
-python reddit_to_db.py
+python reddit_to_db.py --subreddit satoshistreetbets --start 2021-03-01 --end 2021-04-01 --delta 12
 ```
 
 Reddit and Mongo credentials are stored inside ```./private.py``` (make this file before running the above command).
