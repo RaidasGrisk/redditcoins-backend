@@ -38,7 +38,7 @@ def debug_regex_matching() -> None:
 
     text_parts = {'FB', 'facebook'}
     full_texts = ['FBfoo fooFB fooFBbar FBfooFB FBFBFB',
-                 'FB', 'foo FB', 'foo $FB', 'foo$FB']
+                 'FB', 'foo facebook', 'foo $FB', 'foo$FB']
 
     pattern = get_regex_pattern(text_parts)
     for full_text in full_texts:
@@ -100,7 +100,7 @@ async def update_topics(start: int = None, end: int = None) -> None:
         # instead of looping over each topic, concat
         # topic_vals together and do single regex search
         # per doc. Then if match is hit, find the
-        # corresponding key.
+        # corresponding keys.
         if all_topics_re_pattern.search(doc_text):
 
             for topic_key, topic_re_pattern in topics_re_compiled.items():
@@ -141,9 +141,12 @@ async def update_topics(start: int = None, end: int = None) -> None:
 
         total_docs_scanned += 1
         if total_docs_scanned % 10000 == 0:
-            print(f'Scanned: {total_docs_scanned} '
-                  f'out of {total_docs} '
-                  f'updated {total_updates}')
+            print(
+                f'Scanned: {total_docs_scanned} '
+                f'out of {total_docs} // '
+                f'updated {total_updates} '
+                f'last date {datetime.datetime.fromtimestamp(doc["data"]["created_utc"])}'
+            )
 
 
 async def wipe_topics(start: int = None, end: int = None) -> None:
