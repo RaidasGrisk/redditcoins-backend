@@ -1,51 +1,51 @@
 import pandas as pd
-
-
-# TODO: function naming and cleaning logic below suck.
-# TODO: why only nasdaq, should also include NYSE and others?
-def nasdaq_topics() -> dict:
-
-    def get_nasdaq_file() -> pd.DataFrame:
-        url = 'ftp://ftp.nasdaqtrader.com/symboldirectory/nasdaqlisted.txt'
-        tickers = pd.read_csv(url, sep='|')
-        # exclude last line as it contains timestamp
-        return tickers[:-1]
-
-    file = get_nasdaq_file()
-
-    topics = {}
-    for ticker in file['Symbol'].tolist():
-        topics[ticker] = {ticker.upper()}
-
-    return topics
-
-
-def clean_bad_tickers_and_words(topics: dict) -> dict:
-    # remove some tickers because im not sure how
-    # to fix them :D these create weird cases that
-    # are hard to solve and require unique exceptions
-    tickers_to_rm = ['VS', 'UK', 'SO', 'PS', 'PI',
-                     'ON', 'HA', 'GO', 'EH', 'CD', 'Z']
-
-    texts_to_rm = ['on', '']
-
-    for ticker in tickers_to_rm:
-        topics.pop(ticker, None)
-
-    # remove strings that are too often found
-    # in random text and thus matches with
-    # every doc as a legit topic.
-    for ticker, texts in topics.items():
-        for text in texts.copy():
-            # remove if text we are searching
-            # for is single character or in exceptions
-            if len(text) == 1 or text in texts_to_rm:
-                topics[ticker].remove(text)
-
-    return topics
+import requests
 
 
 def get_stock_topics() -> dict:
+
+    # TODO: function naming and cleaning logic below suck.
+    # TODO: why only nasdaq, should also include NYSE and others?
+    def nasdaq_topics() -> dict:
+
+        def get_nasdaq_file() -> pd.DataFrame:
+            url = 'ftp://ftp.nasdaqtrader.com/symboldirectory/nasdaqlisted.txt'
+            tickers = pd.read_csv(url, sep='|')
+            # exclude last line as it contains timestamp
+            return tickers[:-1]
+
+        file = get_nasdaq_file()
+
+        topics = {}
+        for ticker in file['Symbol'].tolist():
+            topics[ticker] = {ticker.upper()}
+
+        return topics
+
+    def clean_bad_tickers_and_words(topics: dict) -> dict:
+        # remove some tickers because im not sure how
+        # to fix them :D these create weird cases that
+        # are hard to solve and require unique exceptions
+        tickers_to_rm = ['VS', 'UK', 'SO', 'PS', 'PI',
+                         'ON', 'HA', 'GO', 'EH', 'CD', 'Z']
+
+        texts_to_rm = ['on', '']
+
+        for ticker in tickers_to_rm:
+            topics.pop(ticker, None)
+
+        # remove strings that are too often found
+        # in random text and thus matches with
+        # every doc as a legit topic.
+        for ticker, texts in topics.items():
+            for text in texts.copy():
+                # remove if text we are searching
+                # for is single character or in exceptions
+                if len(text) == 1 or text in texts_to_rm:
+                    topics[ticker].remove(text)
+
+        return topics
+
 
     # keys are topic names/tickers to be saved in docs
     # values are strings to be searched for in text fields of docs
@@ -90,17 +90,16 @@ def get_stock_topics() -> dict:
 
 
 def get_crypto_topics() -> dict:
-    from other_ops.crypto_tickers import crypto_tickers
 
-    # some keys in the dict contain weird
-    # chars which collide with regex logic
-    # clean it up before returning
-    for key in crypto_tickers.copy().keys():
-        if not key.isalnum():
-            clean_key = ''.join(filter(str.isalnum, key))
-            crypto_tickers[clean_key] = crypto_tickers.pop(key)
+    def coinbase_tickers():
+        r = requests.get('https://api.gdax.com/currencies')
+        coinbase_tickers = {}
+        for ticker in r.json():
+            if ticker['details']['type'] == 'crypto':
+                coinbase_tickers[ticker['id']] = {ticker['id'], ticker['name']}
+        return coinbase_tickers
 
-    return {key: {key} for key in crypto_tickers.keys()}
+    return coinbase_tickers()
 
 
 def get_topics(topics_type: str = 'stock') -> dict:
