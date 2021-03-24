@@ -63,9 +63,3 @@ mongo_details = {
     }
 }
 ```
-
-# Update reddit topics and sentiment
-```
-python other_ops/update_direct_topics.py
-python other_ops/update_sentiment.py
-```
