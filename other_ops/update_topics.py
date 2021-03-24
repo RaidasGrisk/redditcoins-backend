@@ -9,7 +9,7 @@ import argparse
 import datetime, time
 import re
 from typing import Set
-from other_ops.topics import main as get_topics
+from other_ops.topics import get_topics
 
 
 def get_regex_pattern(text_parts: Set[str]) -> re.Pattern:
@@ -51,7 +51,8 @@ def debug_regex_matching() -> None:
 async def update_topics(
         start: int = None,
         end: int = None,
-        subreddit: str = 'wallstreetbets'
+        subreddit: str = 'wallstreetbets',
+        topics_type: str = 'stock'
 ) -> None:
 
     # db connection
@@ -60,7 +61,7 @@ async def update_topics(
     total_docs_scanned = 0
 
     # get topics and do things to increase the speed
-    topics = get_topics()
+    topics = get_topics(topics_type=topics_type)
 
     # the following is to increase the speed perf:
     # before looping over each topic, combine all
@@ -191,6 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('--subreddit', type=str, default='wallstreetbets')
     parser.add_argument('--start', type=str, default=None)
     parser.add_argument('--end', type=str, default=None)
+    parser.add_argument('--topics_type', type=str, default='stock')
     parser.add_argument('--wipe_topics', type=bool, default=False)
     args = parser.parse_args()
 
@@ -207,6 +209,9 @@ if __name__ == '__main__':
     # lets run wipe if True else run update
     # the logic is rather bad but get on with it
     if args_dict.pop('wipe_topics'):
+        # pop another arg as it is not
+        # part of wipe_topics function
+        args_dict.pop('topics_type', None)
         asyncio.run(wipe_topics(**args_dict))
     else:
         asyncio.run(update_topics(**args_dict))

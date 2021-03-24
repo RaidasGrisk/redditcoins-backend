@@ -45,7 +45,7 @@ def clean_bad_tickers_and_words(topics: dict) -> dict:
     return topics
 
 
-def main() -> dict:
+def get_stock_topics() -> dict:
 
     # keys are topic names/tickers to be saved in docs
     # values are strings to be searched for in text fields of docs
@@ -89,5 +89,24 @@ def main() -> dict:
     return {**topics, **topics_nasdaq}
 
 
-if __name__ == '__main__':
-    main()
+def get_crypto_topics() -> dict:
+    from other_ops.crypto_tickers import crypto_tickers
+
+    # some keys in the dict contain weird
+    # chars which collide with regex logic
+    # clean it up before returning
+    for key in crypto_tickers.copy().keys():
+        if not key.isalnum():
+            clean_key = ''.join(filter(str.isalnum, key))
+            crypto_tickers[clean_key] = crypto_tickers.pop(key)
+
+    return {key: {key} for key in crypto_tickers.keys()}
+
+
+def get_topics(topics_type: str = 'stock') -> dict:
+
+    # topics is either stock or crypto
+    if topics_type == 'stock':
+        return get_stock_topics()
+    elif topics_type == 'crypto':
+        return get_crypto_topics()
