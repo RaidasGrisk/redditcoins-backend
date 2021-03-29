@@ -173,7 +173,7 @@ async def wipe_topics(
 
     result = await db_client.reddit[subreddit].update_many(
         filter,
-        {'$set': {'metadata.topics': {'direct': [], 'indirect': []}}}
+        {'$unset': {'metadata.topics': True}}
     )
 
     print(f'matched: {result.matched_count} modified {result.modified_count}')
