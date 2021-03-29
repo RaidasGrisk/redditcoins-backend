@@ -1,3 +1,10 @@
+"""
+TODO:
+ 1. improve regex logic (maybe with a trie). Do in single pass.
+ 2. current speed bottleneck is due to db conn update_one fn.
+    consider update_many
+"""
+
 # to be able to launch this from terminal
 import sys, os
 sys.path.append(os.getcwd())
@@ -119,24 +126,23 @@ async def update_topics(
                     # the first pass of topic find
                     if first_doc_pass:
                         first_doc_pass = False
-                        # also check if direct key is in metadata
+                        # also check if topics key is in metadata
                         # this is due to different format before
+                        # TODO: what if sentiment key is already present?
+                        #  this logic will not rok well then
                         if 'metadata' not in doc or \
-                                'direct' not in doc['metadata']:
+                                'topics' not in doc['metadata']:
                             doc['metadata'] = {
-                                'topics': {
-                                    'direct': [],
-                                    'indirect': []
-                                }
+                                'topics': []
                             }
 
                     # add topic
-                    if topic_key not in doc['metadata']['topics']['direct']:
-                        doc['metadata']['topics']['direct'] += [topic_key]
+                    if topic_key not in doc['metadata']['topics']:
+                        doc['metadata']['topics'] += [topic_key]
                         new_topic_present = True
 
         # update the doc
-        # should better use db_client.reddit.data.bulk_write ?
+        # should better use db_client.reddit.data.update_many ?
         if new_topic_present:
             _ = await db_client.reddit[subreddit].update_one(
                 {'_id': doc['_id']},
