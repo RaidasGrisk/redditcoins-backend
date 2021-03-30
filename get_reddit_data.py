@@ -65,8 +65,6 @@ def check_time_since_last_comment_in_pushshiftAPI() -> None:
     print(time_diff)
 
 
-# ------ #
-
 def get_submission_ids(subreddit: str, before: int, after: int, **kwargs: any) -> List[str]:
     """
     :param subreddit: subreddit name as on the app
@@ -188,10 +186,7 @@ def get_submissions(sub_ids: List[str], reddit_details: dict) -> list:
     return asyncio.run(fetch_submissions(sub_ids, reddit_details))
 
 
-# ------- #
 # combine methods to make a final function
-
-
 def get_reddit_data(start: datetime.datetime,
                     end: datetime.datetime,
                     subreddit: str
