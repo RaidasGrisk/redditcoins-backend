@@ -1,24 +1,82 @@
+## docker-compose.timescale.yml
+#
+#version: '3.7'
+#services:
+#  timescale:
+#    image: timescale/timescaledb:1.7.4-pg12
+#    volumes:
+#      - type: volume
+#        # source: timescale-db # the volume name
+#        source: timescale_volume
+#        # target: the location in the container where the data are stored
+#        target: /var/lib/postgresql/data
+#        read_only: false
+#      # Custom postgresql.conf file will be mounted (see command: as well)
+#      - type: bind
+#        source: ./postgresql_custom.conf
+#        target: /postgresql_custom.conf
+#        read_only: false
+#    env_file: .env
+#    environment:
+#      POSTGRES_HOST: timescale
+#    command: ["-c", "config_file=/postgresql_custom.conf"]
+#    ports:
+#      - 0.0.0.0:5432:5432
+#    networks:
+#      timescale_network:
+#    deploy:
+#      restart_policy:
+#        condition: on-failure
+#
+## Creates a named volume to persist our database data
+#volumes:
+#  timescale_volume:
+#
+## Joins our external network
+#networks:
+#  timescale_network:
+#    external: true
+
+
+# prev to executing the docker-compose
+# create a docker network as follows:
+# docker network create --attachable --driver bridge timescale_network
+
 version: "3.7"
+
 services:
-  mongodb:
-    container_name: mongo-dev
-    image: mongo
-    environment:
-      - MONGO_INITDB_DATABASE=auth
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=pass
+  timescale:
+    image: timescale/timescaledb:1.7.4-pg12
+    container_name: timescale
+    restart: unless-stopped
+    volumes:
+      - /var/lib/postgresql/data
     ports:
-      - '27017:27017'
-  mongo-express:
-    container_name: mongo-express
-    image: mongo-express
-    depends_on:
-      - mongodb
+      - 5432:5432
     environment:
-      - ME_CONFIG_MONGODB_SERVER=mongo-dev
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=pass
-      - ME_CONFIG_BASICAUTH_USERNAME=admin
-      - ME_CONFIG_BASICAUTH_PASSWORD=longpass
+#      POSTGRES_HOST: timescale
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: pass
+    networks:
+      timescale_network:
+
+  pgadmin:
+    # Name of the container this service creates. Otherwise it's prefixed with the git repo name
+    image: "dpage/pgadmin4:latest"
+    container_name: pgadmin
+    restart: unless-stopped
+    volumes:
+      # So the database server settings get saved and stored even if the container is replaced or deleted
+      - /var/lib/pgadmin4
     ports:
-      - '8081:8081'
+      - 9000:9000
+    environment:
+      PGADMIN_LISTEN_PORT: 9000
+      PGADMIN_DEFAULT_EMAIL: mrraidas@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: pass
+    networks:
+      timescale_network:
+
+networks:
+  timescale_network:
+    external: true
