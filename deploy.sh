@@ -16,13 +16,14 @@
 # sudo curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 # sudo chmod +x /usr/local/bin/docker-compose
 
+# https://www.cloudbooklet.com/set-up-docker-on-ubuntu-18-04-lts/
 # ------------ #
 
 # copy the build files into the VM
-project_name="trade-demo-302513"
+project_id="reddit-app-308612"
 vm_instance_name="db-server"
 
-gcloud config set project "${project_name}"
+gcloud config set project "${project_id}"
 gcloud compute scp docker-compose.yaml "${vm_instance_name}:/home/db-deploy"
 
 # build and run the container
