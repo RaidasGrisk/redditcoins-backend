@@ -9,8 +9,8 @@ TODO:
 import sys, os
 sys.path.append(os.getcwd())
 
-from private import mongo_details
-import motor.motor_asyncio
+from private import db_details
+import asyncpg
 import asyncio
 import argparse
 import datetime, time
@@ -62,11 +62,6 @@ async def update_topics(
         topics_type: str = 'stock'
 ) -> None:
 
-    # db connection
-    db_client = motor.motor_asyncio.AsyncIOMotorClient(**mongo_details)
-    total_updates = 0
-    total_docs_scanned = 0
-
     # get topics and do things to increase the speed
     topics = get_topics(topics_type=topics_type)
 
@@ -83,81 +78,94 @@ async def update_topics(
     # we do this only once before the main loop
     topics_re_compiled = {topic: get_regex_pattern(values) for topic, values in topics.items()}
 
-    # move through all the docs and do the thing
-    time_filter = {
-        '$and': [
-            {'data.created_utc': {'$gte': start}} if start else {},
-            {'data.created_utc': {'$lte': end}} if end else {}
-        ]}
+    conn = await asyncpg.connect(**db_details, database='reddit')
 
-    total_docs = await db_client.reddit[subreddit].count_documents(time_filter)
-    cur = db_client.reddit[subreddit].find(time_filter)
-    async for doc in cur:
-        new_topic_present = False
-        first_doc_pass = True
+    # fetch records
+    select_sql = ''.join([
+        f'SELECT * FROM {subreddit} ',
+        f'WHERE created_utc >= {start} ' if start else '',
+        f'AND created_utc < {end} ' if end else '',
+        f'ORDER BY created_utc ASC'
+    ])
 
-        # maybe not the best solution, but lets concat all text
-        # to single string here, so we do this only once per doc
-        doc_text = str()
-        text_fields_to_check = ['title', 'selftext', 'body']
-        for field in text_fields_to_check:
-            if field in doc['data']:
-                doc_text += '//' + doc['data'][field]
+    total_count_sql = ''.join([
+        f'SELECT COUNT(*) FROM {subreddit} ',
+        f'WHERE created_utc >= {start} ' if start else '',
+        f'AND created_utc < {end} ' if end else '',
+    ])
 
-        # loop over topics
-        # when simply looping over each topic and looking
-        # for matches, when then number of topics increase
-        # the speed is reduced dramatically.
-        # here's an idea how to speed things up:
-        # instead of looping over each topic, concat
-        # topic_vals together and do single regex search
-        # per doc. Then if match is hit, find the
-        # corresponding keys.
-        if all_topics_re_pattern.search(doc_text):
+    total_docs_scanned = 0
+    total_updates = 0
+    total_docs_ = await conn.fetch(total_count_sql)
+    total_docs = total_docs_[0]['count']
+    print(f'Total {total_docs}')
 
-            for topic_key, topic_re_pattern in topics_re_compiled.items():
+    async with conn.transaction():
+        async for doc in conn.cursor(select_sql):
 
-                # check if topic is present in doc_text
-                if topic_re_pattern.search(doc_text):
+            # convert record to dict
+            doc = dict(doc)
 
-                    # check if metadata fields exist and add if not
-                    # this will only trigger for new docs
-                    # use first_doc_pass to check only once during
-                    # the first pass of topic find
-                    if first_doc_pass:
-                        first_doc_pass = False
-                        # also check if topics key is in metadata
-                        # this is due to different format before
-                        # TODO: what if sentiment key is already present?
-                        #  this logic will not rok well then
-                        if 'metadata' not in doc or \
-                                'topics' not in doc['metadata']:
-                            doc['metadata'] = {
-                                'topics': []
+            # maybe not the best solution, but lets concat all text
+            # to single string here, so we do this only once per doc
+            doc_text = ' | '.join(
+                [doc.get(key) for key in ['title', 'body'] if doc.get(key)]
+            )
+
+            # loop over topics
+            # when simply looping over each topic and looking
+            # for matches, when then number of topics increase
+            # the speed is reduced dramatically.
+            # here's an idea how to speed things up:
+            # instead of looping over each topic, concat
+            # topic_vals together and do single regex search
+            # per doc. Then if match is hit, find the
+            # corresponding keys.
+            if all_topics_re_pattern.search(doc_text):
+                for topic_key, topic_re_pattern in topics_re_compiled.items():
+                    if topic_re_pattern.search(doc_text):
+
+                        # add topic
+                        new_doc = {
+                            '_id': doc['_id'] + '_' + topic_key,
+                            'created_time': datetime.datetime.utcfromtimestamp(doc["created_utc"]).strftime('%Y-%m-%d %H:%M:%S'),
+                            'ups': doc['ups'],
+                            'is_comment': doc.get('title') == None,
+                            'topic': topic_key
+                        }
+
+                        insert_sql = f"""
+                            INSERT INTO {subreddit + '_'} (
+                                _id, created_time, ups, is_comment, topic
+                            ) VALUES {
+                                new_doc['_id'], 
+                                new_doc['created_time'], 
+                                new_doc['ups'], 
+                                new_doc['is_comment'], 
+                                new_doc['topic']
                             }
+                            ON CONFLICT (_id)
+                            DO UPDATE SET (created_time, ups, is_comment, topic)
+                                = (
+                                    EXCLUDED.created_time, EXCLUDED.ups, 
+                                    EXCLUDED.is_comment, EXCLUDED.topic
+                                ) 
+                            """
 
-                    # add topic
-                    if topic_key not in doc['metadata']['topics']:
-                        doc['metadata']['topics'] += [topic_key]
-                        new_topic_present = True
+                        # TODO: https://magicstack.github.io/asyncpg/current/api/index.html#asyncpg.connection.Connection.executemany
+                        await conn.execute(insert_sql)
+                        total_updates += 1
 
-        # update the doc
-        # should better use db_client.reddit.data.update_many ?
-        if new_topic_present:
-            _ = await db_client.reddit[subreddit].update_one(
-                {'_id': doc['_id']},
-                {'$set': {'metadata': doc['metadata']}}
-            )
-            total_updates += 1
+            total_docs_scanned += 1
+            if total_docs_scanned % 10000 == 0:
+                print(
+                    f'Total {total_docs} '
+                    f'Scanned: {total_docs_scanned} '
+                    f'updated {total_updates} '
+                    f'last date {datetime.datetime.fromtimestamp(doc["created_utc"])}'
+                )
 
-        total_docs_scanned += 1
-        if total_docs_scanned % 10000 == 0:
-            print(
-                f'Scanned: {total_docs_scanned} '
-                f'out of {total_docs} // '
-                f'updated {total_updates} '
-                f'last date {datetime.datetime.fromtimestamp(doc["data"]["created_utc"])}'
-            )
+# asyncio.run(update_topics(subreddit='satoshistreetbets', topics_type='crypto', start=1585602000, end=1695688400))
 
 
 async def wipe_topics(
@@ -166,23 +174,15 @@ async def wipe_topics(
         subreddit: str = 'wallstreetbets'
 ) -> None:
 
-    # db connection
-    db_client = motor.motor_asyncio.AsyncIOMotorClient(**mongo_details)
+    conn = await asyncpg.connect(**db_details, database='reddit')
+    delete_sql = ''.join([
+        f'SELECT * FROM {subreddit + "_"} ',
+        f'WHERE created_utc >= {start} ' if start else '',
+        f'AND created_utc < {end} ' if end else '',
+    ])
+    _ = await conn.execute(delete_sql)
+    print(_)
 
-    filter = {
-        '$and': [
-            {'data.created_utc': {'$gte': start}} if start else {},
-            {'data.created_utc': {'$lte': end}} if end else {},
-            # the following filter only docs with already set topics
-            {'metadata.topics': {'$exists': True}}
-        ]}
-
-    result = await db_client.reddit[subreddit].update_many(
-        filter,
-        {'$unset': {'metadata.topics': True}}
-    )
-
-    print(f'matched: {result.matched_count} modified {result.modified_count}')
 
 
 def date_string_to_timestamp(s: str) -> int:

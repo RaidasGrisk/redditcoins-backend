@@ -1,9 +1,10 @@
-from private import mongo_details
-from pymongo import MongoClient, UpdateOne
+import psycopg2
+from psycopg2.extras import execute_values
 from get_reddit_data import get_reddit_data
 import datetime
 from typing import List, Callable
 import argparse
+from private import db_details
 
 
 # The following decorators takes in a list of dicts and
@@ -110,7 +111,7 @@ def main(
 ) -> None:
 
     # db connection
-    db_client = MongoClient(**mongo_details)
+    conn = psycopg2.connect(**db_details, dbname='reddit')
 
     # make time intervals
 
@@ -150,24 +151,22 @@ def main(
         # else pymongo.errors.InvalidOperation: No operations to execute
         # deal with missing data later
         if batch:
-            with db_client:
-                # inset into db
-                # can not just do insert_many as this will not let
-                # update already existing docs, so the following solution
-                result = db_client.reddit[subreddit].bulk_write([
-                    UpdateOne(
-                        {'_id': item['_id']},
-                        {'$set': {'data': item}},
-                        upsert=True
-                    ) for item in batch
-                ])
+            # upsert https://schinckel.net/2019/12/13/asyncpg-and-upserting-bulk-data/
+            # https://stackoverflow.com/questions/54946697/psycopg2-inserting-list-of-dictionaries-into-posgresql-database-too-many-exec
+            # refactor dict to a list of values
+            columns = ['_id', 'created_utc', 'ups', 'num_comments', 'title', 'body']
+            values = [[row.get(key) for key in columns] for row in batch]
+            query = f"""
+                INSERT INTO {subreddit} ({', '.join(columns)}) VALUES %s
+                ON CONFLICT (_id)
+                DO UPDATE SET ({', '.join(columns[1:])})
+                    = ({", ".join(['EXCLUDED.' + col for col in columns[1:]])}) 
+                """
+            with conn:
+                execute_values(conn.cursor(), query, values)
+                conn.commit()
 
-            if result:
-                # pop to limit printing space and exclude data inserted
-                result.bulk_api_result.pop('upserted', None)
-                print(start_.date(), end_.date(), result.bulk_api_result)
-        else:
-            print(start_.date(), end_.date(), 'No data')
+        print(start_.date(), end_.date(), len(batch))
 
 
 # python reddit_to_db.py --start 2020-03-17 --end 2020-03-18 --delta 12
