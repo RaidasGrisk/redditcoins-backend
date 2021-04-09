@@ -1,8 +1,9 @@
-# Init mongo db and mongo-express
+# Init postgredb and interface
 ```
 docker-compose -f docker-compose.yml up
+python init_db.py
 ```
-Mongo connection and interface details are stored in ```docker-compose.yml```.
+Db connection and interface details are stored in ```docker-compose.yml```.
 
 # Pull and push data to db
 
@@ -14,7 +15,7 @@ python reddit_to_db.py \
     --delta 12
 ```
 
-Reddit and Mongo credentials are stored inside ```./private.py``` (make this file before running the above command).
+Reddit and db credentials are stored inside ```./private.py``` (make this file before running the above command).
 
 ```
 # https://www.reddit.com/dev/api/
@@ -24,10 +25,10 @@ reddit_details = {
     'user_agent': 'my user agent'
 }
 
-mongo_details = {
+db_details = {
     'host': '0.0.0.0',
     'port': 27017,
-    'username': 'admin',
+    'user': 'admin',
     'password': 'pass',
 }
 ```
@@ -35,35 +36,38 @@ mongo_details = {
 # DB doc structure
 
  ```
-{
+table {subreddit}
+raw reddit data
 
-    // reddit id
-    // duplicate of data.id
-    '_id': '4g8ads',
++-----------+-------------+-----+--------------+---------------+--------------------------------+
+|    _id    | created_utc | ups | num_comments |     title     |              body              |
++-----------+-------------+-----+--------------+---------------+--------------------------------+
+| "glbpa8l" |  1611974403 |   1 |              |               | "Waiting for testimony"        |
+| "glbnofh" |  1611973612 |   3 |              |               | "Idc about 1$ I want 10 cents" |
+| "glb7ds2" |  1611965600 |   1 |              |               | "EXACTLYYYYYY"                 |
+| "glb035r" |  1611962228 |   1 |              |               | "Doge is the way"              |
+| "glbudtv" |  1611976898 |   2 |              |               | "How long will that take?"     |
+| "glbpqkg" |  1611974626 |   2 |              |               | "Bruh"                         |
+| "glb2bj9" |  1611963233 |   1 |              |               | "virgins."                     |
+| "glbu97h" |  1611976835 |   8 |              |               | "🤚"                           |
+| "l8hfq0"  |  1611995690 | 206 |           22 | "r/dogecoin?" |                                |
++-----------+-------------+-----+--------------+---------------+--------------------------------+
 
-    // this part is raw reddit data, must be easily
-    // over-writen while refreshing the db so do not 
-    // store anything else but raw data here
-    'data': {
-        'body': 'asd',
-        'ups': 5,
-        'is_root': True,
-        'created_utc': 1610922785,
-        ...
-    },
 
-    // this part is made by other models
-    // sentiment, topic assignment, etc.
-    // must not be overwritten by db refresh
-    // update this by running expensive 
-    // code dependent on the above data
-    'metadata': {
-        'sentiment': 1,
-        'topics': {
-            'direct': ['AMC'],
-            'indirect: ['BTC']
-        },
-        ...
-    }
-}
+table {subreddit_}
+topic (ticker) mentions
++---------------+-----------------------+-----+------------+-------+
+|      _id      |     created_time      | ups | is_comment | topic |
++---------------+-----------------------+-----+------------+-------+
+| "gp8o9ms_XRP" | "2021-02-28 23:11:05" |   1 | true       | "XRP" |
+| "gp8o9ms_XLM" | "2021-02-28 23:11:05" |   1 | true       | "XLM" |
+| "gp8ovit_ADA" | "2021-02-28 23:15:53" |   1 | true       | "ADA" |
+| "gp8ps64_ADA" | "2021-02-28 23:22:55" |   1 | true       | "ADA" |
+| "gp8s1b9_ADA" | "2021-02-28 23:41:16" |   2 | true       | "ADA" |
+| "gp8tfyl_ADA" | "2021-02-28 23:53:01" |   1 | true       | "ADA" |
+| "gp8u28x_DNT" | "2021-02-28 23:58:35" |   1 | true       | "DNT" |
+| "gp8wxuk_ADA" | "2021-03-01 00:24:54" |   2 | true       | "ADA" |
+| "gp90hov_BTC" | "2021-03-01 00:58:31" |   0 | true       | "BTC" |
++---------------+-----------------------+-----+------------+-------+
+
 ```
