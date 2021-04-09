@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2.extras import execute_values
-from get_reddit_data import get_reddit_data
+from get_reddit_data import RedditData
 import datetime
 from typing import List, Callable
 import argparse
@@ -103,7 +103,39 @@ def split_date_interval_to_chunks(
     return time_chunks
 
 
-def main(
+def push_data_to_db(subreddit: str, data: List[List[dict]], conn) -> None:
+
+    # data = [[{sub}, {comm}, {comm} ..], [{sub}, {comm}, {comm} ...], ...]
+    # lets make it flat and insert whole batch into db
+    flatten = lambda list_: [i for j in list_ for i in
+                             flatten(j)] if type(list_) is list else [list_]
+    data = flatten(data)
+
+    # filter, edit, etc. before push
+    data = before_db_push(data)
+
+    # skip if after post-processing no items are left
+    # or if reddit apis returned no data
+    # else pymongo.errors.InvalidOperation: No operations to execute
+    # deal with missing data later
+    if data:
+        # upsert https://schinckel.net/2019/12/13/asyncpg-and-upserting-bulk-data/
+        # https://stackoverflow.com/questions/54946697/psycopg2-inserting-list-of-dictionaries-into-posgresql-database-too-many-exec
+        # refactor dict to a list of values
+        columns = ['_id', 'created_utc', 'ups', 'num_comments', 'title', 'body']
+        values = [[row.get(key) for key in columns] for row in data]
+        query = f"""
+            INSERT INTO {subreddit} ({', '.join(columns)}) VALUES %s
+            ON CONFLICT (_id)
+            DO UPDATE SET ({', '.join(columns[1:])})
+                = ({", ".join(['EXCLUDED.' + col for col in columns[1:]])}) 
+            """
+        with conn:
+            execute_values(conn.cursor(), query, values)
+            conn.commit()
+
+
+def get_historical_data(
         subreddit='wallstreetbets',
         start=datetime.datetime.now() - datetime.timedelta(days=22),
         end=datetime.datetime.now(),
@@ -112,6 +144,7 @@ def main(
 
     # db connection
     conn = psycopg2.connect(**db_details, dbname='reddit')
+    reddit = RedditData()
 
     # make time intervals
 
@@ -136,40 +169,28 @@ def main(
 
     for start_, end_ in intervals:
 
-        batch = get_reddit_data(subreddit=subreddit, start=start_, end=end_)
-
-        # now batch = [[{sub}, {comm}, {comm} ..], [{sub}, {comm}, {comm} ...], ...]
-        # lets make it flat and insert whole batch into db
-        flatten = lambda list_: [i for j in list_ for i in
-                                 flatten(j)] if type(list_) is list else [list_]
-        batch = flatten(batch)
-
-        # filter, edit, etc. before push
-        batch = before_db_push(batch)
-
-        # skip if get_reddit_data returns an empty list
-        # else pymongo.errors.InvalidOperation: No operations to execute
-        # deal with missing data later
-        if batch:
-            # upsert https://schinckel.net/2019/12/13/asyncpg-and-upserting-bulk-data/
-            # https://stackoverflow.com/questions/54946697/psycopg2-inserting-list-of-dictionaries-into-posgresql-database-too-many-exec
-            # refactor dict to a list of values
-            columns = ['_id', 'created_utc', 'ups', 'num_comments', 'title', 'body']
-            values = [[row.get(key) for key in columns] for row in batch]
-            query = f"""
-                INSERT INTO {subreddit} ({', '.join(columns)}) VALUES %s
-                ON CONFLICT (_id)
-                DO UPDATE SET ({', '.join(columns[1:])})
-                    = ({", ".join(['EXCLUDED.' + col for col in columns[1:]])}) 
-                """
-            with conn:
-                execute_values(conn.cursor(), query, values)
-                conn.commit()
-
+        batch = reddit.get_data(subreddit=subreddit, start=start_, end=end_)
+        push_data_to_db(subreddit, batch, conn)
         print(start_.date(), end_.date(), len(batch))
 
 
+def get_new_data(subreddit='wallstreetbets', limit=100):
+
+    # db connection
+    conn = psycopg2.connect(**db_details, dbname='reddit')
+    reddit = RedditData()
+
+    batch = reddit.get_data_new(subreddit=subreddit, limit=limit)
+    push_data_to_db(subreddit, batch, conn)
+    print(
+        datetime.datetime.utcfromtimestamp(batch[0][0]['created_utc']).strftime('%Y-%m-%d'),
+        datetime.datetime.utcfromtimestamp(batch[-1][0]['created_utc']).strftime('%Y-%m-%d'),
+        len(batch)
+    )
+
+
 # python reddit_to_db.py --start 2020-03-17 --end 2020-03-18 --delta 12
+# python reddit_to_db.py --subreddit satoshistreetbets --limit 100
 if __name__ == '__main__':
 
     # set default values
@@ -182,6 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--start', type=str, default=start.strftime('%Y-%m-%d'))
     parser.add_argument('--end', type=str, default=end.strftime('%Y-%m-%d'))
     parser.add_argument('--delta', type=int, default=12)
+    parser.add_argument('--limit', type=int, default=None)
     args = parser.parse_args()
 
     # deal with args format
@@ -191,4 +213,10 @@ if __name__ == '__main__':
     args_dict['delta'] = datetime.timedelta(hours=args_dict['delta'])
 
     # run the thing
-    main(**args_dict)
+    # if limit is provided, fetch new data only
+    # otherwise fetch historical data
+    if args_dict['limit']:
+        get_new_data(args_dict['subreddit'], args_dict['limit'])
+    else:
+        args_dict.pop('limit', None)
+        get_historical_data(**args_dict)
