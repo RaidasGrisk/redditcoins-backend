@@ -43,6 +43,7 @@ raw reddit data
 |    _id    | created_utc | ups | num_comments |     title     |              body              |
 +-----------+-------------+-----+--------------+---------------+--------------------------------+
 | "glbpa8l" |  1611974403 |   1 |              |               | "Waiting for testimony"        |
+| "glb60wl" |  1611964950 |   2 |              |               | "Let’s do it people!!!!"       |
 | "glbnofh" |  1611973612 |   3 |              |               | "Idc about 1$ I want 10 cents" |
 | "glb7ds2" |  1611965600 |   1 |              |               | "EXACTLYYYYYY"                 |
 | "glb035r" |  1611962228 |   1 |              |               | "Doge is the way"              |
