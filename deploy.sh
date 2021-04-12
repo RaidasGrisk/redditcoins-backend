@@ -24,19 +24,15 @@ project_id="reddit-app-308612"
 vm_instance_name="db-server"
 
 gcloud config set project "${project_id}"
-gcloud compute scp docker-compose.yaml "${vm_instance_name}:/home/db-deploy"
+gcloud compute scp docker-compose.yml "${vm_instance_name}:/home/db-deploy"
 
 # build and run the container
 gcloud compute ssh "${vm_instance_name}" \
-  --command="sudo docker stop mongo-dev mongo-express && \
-             sudo docker rm mongo-dev mongo-express && \
+  --command="sudo docker stop timescale pgadmin && \
+             sudo docker timescale pgadmin && \
              cd /home/db-deploy/ && \
              docker-compose up -d"
 
 # config firewall rules
-gcloud compute firewall-rules create allow-mongodb --allow tcp:27017
-gcloud compute firewall-rules create allow-mongodb-express --allow tcp:8081
-
-# docker stop mongo-dev mongo-express
-# docker rm mongo-dev mongo-express
-# docker-compose up -d
+gcloud compute firewall-rules create allow-pgadmin  --allow tcp:9000
+gcloud compute firewall-rules create allow-postgre --allow tcp:5432
