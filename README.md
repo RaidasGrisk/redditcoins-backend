@@ -29,7 +29,7 @@ db_details = {
     'host': '0.0.0.0',
     'port': 27017,
     'user': 'admin',
-    'password': 'pass',
+    'password': 'temp-pass',
 }
 ```
 
