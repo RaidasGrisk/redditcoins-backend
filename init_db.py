@@ -32,7 +32,7 @@ if __name__ == '__main__':
                 title VARCHAR,
                 body VARCHAR
         """
-        subreddits = ['wallstreetbets', 'satoshistreetbets']
+        subreddits = ['cryptocurrency', 'satoshistreetbets']
         for subreddit in subreddits:
             cur.execute(
                 f'DROP TABLE IF EXISTS {subreddit};'
