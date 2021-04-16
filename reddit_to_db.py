@@ -171,7 +171,7 @@ def get_historical_data(
 
         batch = reddit.get_data(subreddit=subreddit, start=start_, end=end_)
         push_data_to_db(subreddit, batch, conn)
-        print(start_.date(), end_.date(), len(batch))
+        print(subreddit, start_.date(), end_.date(), len(batch))
 
 
 def get_new_data(subreddit='wallstreetbets', limit=100):
@@ -183,6 +183,7 @@ def get_new_data(subreddit='wallstreetbets', limit=100):
     batch = reddit.get_data_new(subreddit=subreddit, limit=limit)
     push_data_to_db(subreddit, batch, conn)
     print(
+        subreddit,
         datetime.datetime.utcfromtimestamp(batch[0][0]['created_utc']).strftime('%Y-%m-%d'),
         datetime.datetime.utcfromtimestamp(batch[-1][0]['created_utc']).strftime('%Y-%m-%d'),
         len(batch)
