@@ -1,111 +1,43 @@
-import pandas as pd
 import requests
 
 
-def get_stock_topics() -> dict:
+def coinbase_coins():
+    r = requests.get('https://api.gdax.com/currencies')
+    coinbase_coins = {}
+    for coin in r.json():
+        if coin['details']['type'] == 'crypto':
+            coinbase_coins[coin['id']] = {coin['id'], coin['name']}
+    return coinbase_coins
 
-    # TODO: function naming and cleaning logic below suck.
-    # TODO: why only nasdaq, should also include NYSE and others?
-    def nasdaq_topics() -> dict:
-
-        def get_nasdaq_file() -> pd.DataFrame:
-            url = 'ftp://ftp.nasdaqtrader.com/symboldirectory/nasdaqlisted.txt'
-            tickers = pd.read_csv(url, sep='|')
-            # exclude last line as it contains timestamp
-            return tickers[:-1]
-
-        file = get_nasdaq_file()
-
-        topics = {}
-        for ticker in file['Symbol'].tolist():
-            topics[ticker] = {ticker.upper()}
-
-        return topics
-
-    def clean_bad_tickers_and_words(topics: dict) -> dict:
-        # remove some tickers because im not sure how
-        # to fix them :D these create weird cases that
-        # are hard to solve and require unique exceptions
-        tickers_to_rm = ['VS', 'UK', 'SO', 'PS', 'PI',
-                         'ON', 'HA', 'GO', 'EH', 'CD', 'Z']
-
-        texts_to_rm = ['on', '']
-
-        for ticker in tickers_to_rm:
-            topics.pop(ticker, None)
-
-        # remove strings that are too often found
-        # in random text and thus matches with
-        # every doc as a legit topic.
-        for ticker, texts in topics.items():
-            for text in texts.copy():
-                # remove if text we are searching
-                # for is single character or in exceptions
-                if len(text) == 1 or text in texts_to_rm:
-                    topics[ticker].remove(text)
-
-        return topics
-
-
-    # keys are topic names/tickers to be saved in docs
-    # values are strings to be searched for in text fields of docs
-    # IMPORTANT: make ticker values upper case as would be expected in text
-    topics = {
-
-        # general topics
-        'SPY': {'SPY'},
-        'DOGE': {'DOGE, dogecoin'},
-        'CRYPTO': {'coin', 'cypto', 'mining'},
-
-        # some are not in nasdaq
-        'GME': {'GME', 'gamestop', 'gamestonk'},
-        'PLTR': {'PLTR', 'palantir'},
-
-        # test stocks
-        'GOOGL': {'GOOGL'},
-        'AMZN': {'AMZN'},
-        'AAPL': {'AAPL'},
-        'NFLX': {'NFLX'},
-        'MSFT': {'MSFT'},
-        'TSLA': {'TSLA'},
-        'NVDA': {'NVDA'},
-        'TECH': {'TECH'},
-        'INTC': {'INTC'},
-        'BABA': {'BABA'},
-        'PYPL': {'PYPL'},
-        'CSCO': {'CSCO'},
-        'MTCH': {'MTCH'},
-        'ADBE': {'ADBE'},
-        'DBX': {'DBX'},
-        'QQQ': {'QQQ'},
-        'CRM': {'CRM'}
-
+def manual_coins():
+    return {
+        'ETH': {'Ethereum', 'ETH'},
+        'BTC': {'BTC', 'Bitcoin'},
+        'XRP': {'XRP', 'Ripple'},
+        'XLM': {'XLM', 'Stellar'},
+        'ADA': {'ADA', 'Cardano'},
+        'DOGE': {'DOGE', 'Dogecoin'},
+        'DOT': {'Polkadot', 'DOT'},
+        'NEO': {'Neo', 'NEO'},
+        'CEL': {'CEL', 'Celsius'},
+        'NANO': {'Nano', 'NANO'},
+        'LINK': {'Chainlink', 'LINK'},
+        'XMR': {'Monero', 'XMR'},
+        'USDT': {'Tether', 'USDT'},
+        'LTC': {'LTC', 'Litecoin'},
+        'BNB': {'BNB', 'Binance'},
+        'NEM': {'XEM', 'NEM'},
+        'TRON': {'TRX', 'TRON'},
+        'DASH': {'DASH', 'Dash'},
+        'ZEC': {'ZEC', 'Zcash'},
+        'BTG': {'Gold', 'BTG'},
+        'EOS': {'EOS', 'EOSIO'},
+        'VET': {'VET', 'VeChain'},
+        'DAI': {'MakerDao', 'DAI'}
     }
 
-    topics_nasdaq = nasdaq_topics()
-    topics_nasdaq = clean_bad_tickers_and_words(topics_nasdaq)
 
-    # do topics | topics_nasdaq for 3.9 py
-    return {**topics, **topics_nasdaq}
-
-
-def get_crypto_topics() -> dict:
-
-    def coinbase_tickers():
-        r = requests.get('https://api.gdax.com/currencies')
-        coinbase_tickers = {}
-        for ticker in r.json():
-            if ticker['details']['type'] == 'crypto':
-                coinbase_tickers[ticker['id']] = {ticker['id'], ticker['name']}
-        return coinbase_tickers
-
-    return coinbase_tickers()
-
-
-def get_topics(topics_type: str = 'stock') -> dict:
-
-    # topics is either stock or crypto
-    if topics_type == 'stock':
-        return get_stock_topics()
-    elif topics_type == 'crypto':
-        return get_crypto_topics()
+def get_topics() -> dict:
+    # in case of duplicate key in dicts
+    # latest dict overwrites previous dicts
+    return {**coinbase_coins(), **manual_coins()}

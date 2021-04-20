@@ -56,14 +56,13 @@ def debug_regex_matching() -> None:
 
 
 async def update_topics(
+        subreddit: str,
         start: int = None,
-        end: int = None,
-        subreddit: str = 'wallstreetbets',
-        topics_type: str = 'stock'
+        end: int = None
 ) -> None:
 
     # get topics and do things to increase the speed
-    topics = get_topics(topics_type=topics_type)
+    topics = get_topics()
 
     # the following is to increase the speed perf:
     # before looping over each topic, combine all
@@ -165,13 +164,13 @@ async def update_topics(
                     f'last date {datetime.datetime.fromtimestamp(doc["created_utc"])}'
                 )
 
-# asyncio.run(update_topics(subreddit='satoshistreetbets', topics_type='crypto', start=1585602000, end=1695688400))
+# asyncio.run(update_topics(subreddit='satoshistreetbets', start=1585602000, end=1695688400))
 
 
 async def wipe_topics(
+        subreddit: str,
         start: int = None,
-        end: int = None,
-        subreddit: str = 'wallstreetbets'
+        end: int = None
 ) -> None:
 
     conn = await asyncpg.connect(**db_details, database='reddit')
@@ -194,10 +193,9 @@ if __name__ == '__main__':
 
     # parse args
     parser = argparse.ArgumentParser()
-    parser.add_argument('--subreddit', type=str, default='wallstreetbets')
+    parser.add_argument('--subreddit', type=str, default='cryptocurrency')
     parser.add_argument('--start', type=str, default=None)
     parser.add_argument('--end', type=str, default=None)
-    parser.add_argument('--topics_type', type=str, default='stock')
     parser.add_argument('--wipe_topics', type=bool, default=False)
     args = parser.parse_args()
 
