@@ -17,7 +17,6 @@ do
 
   python3 other_ops/update_topics.py \
   --subreddit $subreddit \
-  --topics_type crypto \
   --start $DATE \
   >> $LOGS_DIR"/update_topics.log" 2>&1
 done
