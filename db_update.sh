@@ -1,12 +1,17 @@
 #!/bin/bash
 
+# this script is added to crontab
+# and is ran every 10 minutes
+# before deploying this make sure
+# that ROOT_DIR is correct on deploy machine
+
 #ROOT_DIR="/home/mrraidas/"
 ROOT_DIR="/home/raidas/Desktop"
 SUB_DIR=$ROOT_DIR"/reddit-to-db"
 LOGS_DIR=$ROOT_DIR"/logs"
 
 cd $SUB_DIR
-DATE=$(date -d "5 days ago" '+%Y-%m-%d')
+DATE=$(date -d "1 days ago" '+%Y-%m-%d')
 
 for subreddit in satoshistreetbets cryptocurrency;
 do
