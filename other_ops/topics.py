@@ -33,7 +33,8 @@ def manual_coins():
         'BTG': {'Gold', 'BTG'},
         'EOS': {'EOS', 'EOSIO'},
         'VET': {'VET', 'VeChain'},
-        'DAI': {'MakerDao', 'DAI'}
+        'DAI': {'MakerDao', 'DAI'},
+        'SHIBA': {'SHIBA INO', 'SHIBA'}
     }
 
 

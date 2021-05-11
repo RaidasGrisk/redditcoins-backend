@@ -31,7 +31,7 @@ def get_regex_pattern(text_parts: Set[str]) -> re.Pattern:
     lets add more or cases in front of the ticker
     for example matching $ticker (^|\s|[$])
     so now the following triggers a match:
-    'tsla', ' tsla', ' tsla ', '$tsla', '$tsla '
+    'ETH', ' ETH', ' ETH ', '$ETH', '$ETH '
     """
 
     # make regex string by inserting possible text_parts
@@ -43,9 +43,10 @@ def get_regex_pattern(text_parts: Set[str]) -> re.Pattern:
 
 def debug_regex_matching() -> None:
 
-    text_parts = {'FB', 'facebook'}
-    full_texts = ['FBfoo fooFB fooFBbar FBfooFB FBFBFB',
-                 'FB', 'foo facebook', 'foo $FB', 'foo$FB']
+    text_parts = {'ETH', 'etherium'}
+    full_texts = ['ETHfoo fooETH fooETHbar ETHfooFB ETHETHETH',
+                 'ETH', 'foo etherium', 'foo $ETH', 'foo$ETH',
+                  'ethernet, promETHeus']
 
     pattern = get_regex_pattern(text_parts)
     for full_text in full_texts:
