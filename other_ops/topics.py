@@ -34,7 +34,8 @@ def manual_coins():
         'EOS': {'EOS', 'EOSIO'},
         'VET': {'VET', 'VeChain'},
         'DAI': {'MakerDao', 'DAI'},
-        'SHIBA': {'SHIBA INO', 'SHIBA'}
+        'SHIB': {'SHIBA INU', 'SHIB', 'SHIBA'},
+        'ICP': {'Internet computer', 'ICP'},
     }
 
 
