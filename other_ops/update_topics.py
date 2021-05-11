@@ -36,7 +36,7 @@ def get_regex_pattern(text_parts: Set[str]) -> re.Pattern:
 
     # make regex string by inserting possible text_parts
     text_parts_joined = "|".join(text_parts)
-    regex_pattern = f'(^|\s|[$])({text_parts_joined})($|\s)'
+    regex_pattern = f'(^|\s|[$])({text_parts_joined})($|,|.|!|?|\s)'
     regex_pattern = re.compile(regex_pattern)
     return regex_pattern
 
@@ -46,7 +46,7 @@ def debug_regex_matching() -> None:
     text_parts = {'ETH', 'etherium'}
     full_texts = ['ETHfoo fooETH fooETHbar ETHfooFB ETHETHETH',
                  'ETH', 'foo etherium', 'foo $ETH', 'foo$ETH',
-                  'ethernet, promETHeus']
+                  'ethernet, promETHeus', 'ETH,', 'ETH!']
 
     pattern = get_regex_pattern(text_parts)
     for full_text in full_texts:
