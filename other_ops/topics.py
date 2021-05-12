@@ -2,7 +2,7 @@ import requests
 
 
 def coinbase_coins():
-    r = requests.get('https://api.gdax.com/currencies')
+    r = requests.get('https://api.pro.coinbase.com/currencies')
     coinbase_coins = {}
     for coin in r.json():
         if coin['details']['type'] == 'crypto':
