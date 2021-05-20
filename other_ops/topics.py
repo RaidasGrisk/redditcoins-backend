@@ -36,7 +36,8 @@ def manual_coins():
         'DAI': {'MakerDao', 'DAI'},
         'SHIB': {'SHIBA INU', 'SHIB', 'SHIBA'},
         'ICP': {'Internet computer', 'ICP'},
-        'IOTA': {'IOTA', 'Miota'}
+        'IOTA': {'IOTA', 'Miota'},
+        'LTO': {'LTO network', 'LTO'},
     }
 
 

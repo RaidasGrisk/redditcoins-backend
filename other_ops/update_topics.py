@@ -15,7 +15,7 @@ import asyncio
 import argparse
 import datetime, time
 import re
-from typing import Set
+from typing import Set, List
 from other_ops.topics import get_topics
 
 
@@ -59,11 +59,17 @@ def debug_regex_matching() -> None:
 async def update_topics(
         subreddit: str,
         start: int = None,
-        end: int = None
+        end: int = None,
+        topics_to_update: List[str] = None
 ) -> None:
 
     # get topics and do things to increase the speed
     topics = get_topics()
+
+    # often I add a single or two coins and have to rescan
+    # db for matches. Update only selected coins to increase speed
+    if topics_to_update:
+        topics = {topic: topics[topic] for topic in topics_to_update}
 
     # the following is to increase the speed perf:
     # before looping over each topic, combine all
@@ -197,6 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--subreddit', type=str, default='cryptocurrency')
     parser.add_argument('--start', type=str, default=None)
     parser.add_argument('--end', type=str, default=None)
+    parser.add_argument('--topics_to_update', type=str, nargs='+', default=[])
     parser.add_argument('--wipe_topics', type=bool, default=False)
     args = parser.parse_args()
 
