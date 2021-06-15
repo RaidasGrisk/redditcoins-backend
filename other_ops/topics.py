@@ -38,6 +38,14 @@ def manual_coins():
         'ICP': {'Internet computer', 'ICP'},
         'IOTA': {'IOTA', 'Miota'},
         'LTO': {'LTO network', 'LTO'},
+        'SOL': {'Solana', 'SOL'},
+        'MOON': {'Moons', 'MOON'},
+        'USDC': {'USD coin', 'USDC'},
+        'THETA': {'THETA'},
+        'FIL': {'Filecoin', 'FIL'},
+        'KSM': {'Kusama', 'KSM'},
+        'CAKE': {'PancakeSwap', 'Pancake', 'CAKE'},
+        'KLAY': {'Klaytn', 'KLAY'}
     }
 
 
