@@ -45,7 +45,9 @@ def manual_coins():
         'FIL': {'Filecoin', 'FIL'},
         'KSM': {'Kusama', 'KSM'},
         'CAKE': {'PancakeSwap', 'Pancake', 'CAKE'},
-        'KLAY': {'Klaytn', 'KLAY'}
+        'KLAY': {'Klaytn', 'KLAY'},
+        'AMP': {'AMP'},
+        'ERG': {'ERG', 'Ergo'}
     }
 
 
