@@ -25,7 +25,7 @@ def manual_coins():
         'XMR': {'Monero', 'XMR'},
         'USDT': {'Tether', 'USDT'},
         'LTC': {'LTC', 'Litecoin'},
-        'BNB': {'BNB', 'Binance'},
+        'BNB': {'BNB'},
         'NEM': {'XEM', 'NEM'},
         'TRON': {'TRX', 'TRON'},
         'DASH': {'DASH', 'Dash'},
