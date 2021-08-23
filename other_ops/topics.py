@@ -50,7 +50,8 @@ def manual_coins():
         'ERG': {'ERG', 'Ergo'},
         'FTM': {'FTM', 'Fantom'},
         'LUNA': {'LUNA', 'Terra'},
-        'AVAX': {'AVAX', 'Avalanche'}
+        'AVAX': {'AVAX', 'Avalanche'},
+        'ONE': {'Harmony'}
     }
 
 
