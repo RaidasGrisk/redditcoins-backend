@@ -47,7 +47,10 @@ def manual_coins():
         'CAKE': {'PancakeSwap', 'Pancake', 'CAKE'},
         'KLAY': {'Klaytn', 'KLAY'},
         'AMP': {'AMP'},
-        'ERG': {'ERG', 'Ergo'}
+        'ERG': {'ERG', 'Ergo'},
+        'FTM': {'FTM', 'Fantom'},
+        'LUNA': {'LUNA', 'Terra'},
+        'AVAX': {'AVAX', 'Avalanche'}
     }
 
 
