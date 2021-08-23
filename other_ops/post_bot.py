@@ -6,6 +6,10 @@ Add this to crontab to run every x hours.
 0 */2 * * * python3 /home/mrraidas/reddit-to-db/other_ops/post_bot.py
 """
 
+# to be able to launch this from terminal and crontab
+import sys, os
+sys.path.append(os.getcwd())
+
 import asyncio
 import asyncpraw
 from private import reddit_login
@@ -43,7 +47,6 @@ def make_comment():
     url = 'https://redditcoins.app/api/volume/market_summary?gran=daily'
     resp = requests.get(url)
     data = resp.json()
-    del data['cryptocurrency']['BTC']
 
     # check if returned data is correct
     if not is_data_correct(data):
