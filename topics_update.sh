@@ -11,7 +11,7 @@ SUB_DIR=$ROOT_DIR"/reddit-to-db"
 LOGS_DIR=$ROOT_DIR"/logs"
 
 cd $SUB_DIR
-DATE=$(date -d "30 minutes ago" '+%Y-%m-%d %H:%M:%S')
+DATE=$(date -u -d "30 minutes ago" '+%Y-%m-%d %H:%M:%S')
 
 python3 other_ops/update_topics.py \
 --subreddit cryptocurrency \
