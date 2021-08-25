@@ -87,7 +87,7 @@ topic (ticker) mentions
 # To start the whole thing do this
 Start this script to capture the stream and push it to db (this runs forever)
 ```
-python3 reddit_to_db_2.py --subreddit cryptocurrency
+python3 -u reddit_to_db_2.py --subreddit cryptocurrency
 ```
 
 Add this to crontab to update the topics every x mins
