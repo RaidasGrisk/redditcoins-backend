@@ -51,7 +51,13 @@ def manual_coins():
         'FTM': {'FTM', 'Fantom'},
         'LUNA': {'LUNA', 'Terra'},
         'AVAX': {'AVAX', 'Avalanche'},
-        'ONE': {'Harmony'}
+        'ONE': {'Harmony'},
+        'CKB': {'CKB', 'Nervos'},
+        'CRO': {'CRO'},
+        'QNT': {'QNT', 'Quant'},
+        'MINA': {'MINA', 'Mina protocol'},
+        'OSMO': {'OSMO', 'Osmosis'},
+        'JUNO': {'JUNO'},
     }
 
 
