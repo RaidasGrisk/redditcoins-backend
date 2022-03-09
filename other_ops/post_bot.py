@@ -30,7 +30,13 @@ def is_data_correct(data):
     coins_to_check = ['BTC', 'ETH', 'ADA']
     if not all(coin in data['cryptocurrency'].keys() for coin in coins_to_check):
         return False
-
+    
+    # check if volume is not to low
+    btc_vol = data['cryptocurrency']['BTC']['data'][0]['volume']
+    eth_vol = data['cryptocurrency']['ETH']['data'][0]['volume']
+    if btc_vol < 80 or eth_vol < 30:
+        return False
+    
     # check if date is correct
     # the date should be today - 1 day.
     data_date = data['cryptocurrency']['BTC']['data'][0]['time']
