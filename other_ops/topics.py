@@ -58,6 +58,7 @@ def manual_coins():
         'MINA': {'MINA', 'Mina protocol'},
         'OSMO': {'OSMO', 'Osmosis'},
         'JUNO': {'JUNO'},
+        'OP': {'Optimism'},
     }
 
 
