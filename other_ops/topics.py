@@ -53,7 +53,7 @@ def manual_coins():
         'AVAX': {'AVAX', 'Avalanche'},
         'ONE': {'Harmony'},
         'CKB': {'CKB', 'Nervos'},
-        'CRO': {'CRO'},
+        'CRO': {'CRO', 'Cronos'},
         'QNT': {'QNT', 'Quant'},
         'MINA': {'MINA', 'Mina protocol'},
         'OSMO': {'OSMO', 'Osmosis'},
