@@ -59,6 +59,7 @@ def manual_coins():
         'OSMO': {'OSMO', 'Osmosis'},
         'JUNO': {'JUNO'},
         'OP': {'Optimism'},
+        'NFT': {'NFT', 'non fungible token, non-fungible token'},
     }
 
 
