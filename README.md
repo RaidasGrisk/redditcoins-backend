@@ -19,6 +19,11 @@ python reddit_to_db.py \
 python reddit_to_db.py \
     --subreddit satoshistreetbets \
     --limit 100
+    
+# data stream
+python reddit_to_db_2.py \
+    --subreddit satoshistreetbets \
+    --limit 100
 ```
 
 Reddit and db credentials are stored inside ```./private.py``` (make this file before running the above command).
@@ -77,4 +82,15 @@ topic (ticker) mentions
 | "gp90hov_BTC" | "2021-03-01 00:58:31" |   0 | true       | "BTC" |
 +---------------+-----------------------+-----+------------+-------+
 
+```
+
+# To start the whole thing do this
+Start this script to capture the stream and push it to db (this runs forever)
+```
+python3 -u reddit_to_db_2.py --subreddit cryptocurrency
+```
+
+Add this to crontab to update the topics every x mins
+```
+*/10 * * * * /home/mrraidas/reddit-to-db/topics_update.sh
 ```

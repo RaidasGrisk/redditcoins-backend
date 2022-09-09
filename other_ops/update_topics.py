@@ -191,7 +191,7 @@ async def wipe_topics(
 
 
 def date_string_to_timestamp(s: str) -> int:
-    date = datetime.datetime.strptime(s, '%Y-%m-%d')
+    date = datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
     tuple = date.timetuple()
     return int(time.mktime(tuple))
 
