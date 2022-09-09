@@ -16,4 +16,4 @@ DATE=$(date -u -d "30 minutes ago" '+%Y-%m-%d %H:%M:%S')
 python3 other_ops/update_topics.py \
 --subreddit cryptocurrency \
 --start "$DATE" \
->> $LOGS_DIR"/update_topics.log" 2>&1
+>> "$LOGS_DIR/update_topics.log" 2>&1
