@@ -91,11 +91,11 @@ async def main(comment):
         reddit = asyncpraw.Reddit(**reddit_login)
         subreddit = await reddit.subreddit('cryptocurrency')
         async with reddit:
-            async for submission in subreddit.hot(limit=10):
+            async for submission in subreddit.hot(limit=20):
                 # find the submission we want. Not very convenient,
                 # but can't quickly find the patter I should be using
                 # so lets just look for partial title match
-                if 'Daily Discussion' in submission.title:
+                if 'Daily General Discussion' in submission.title:
                     await submission.reply(comment)
                     return
 
