@@ -30,7 +30,7 @@ def manual_coins():
         'TRON': {'TRX', 'TRON'},
         'DASH': {'DASH', 'Dash'},
         'ZEC': {'ZEC', 'Zcash'},
-        'BTG': {'Gold', 'BTG'},
+        'BTG': {'BTG'},
         'EOS': {'EOS', 'EOSIO'},
         'VET': {'VET', 'VeChain'},
         'DAI': {'MakerDao', 'DAI'},
