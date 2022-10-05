@@ -72,8 +72,8 @@ def make_comment():
     # '\n\n' makes new paragraph
     current_date = data['cryptocurrency']['BTC']['data'][0]['time']
     comment = (
-        f'''Most coin mentions on r/cc ({current_date}):\n\n'''
-        '''|Coin|Mentions|  \n'''
+        f'''Most mentions on r/cc ({current_date}):\n\n'''
+        '''||Mentions|  \n'''
         '''|:-|:-|  \n'''
     )
 
