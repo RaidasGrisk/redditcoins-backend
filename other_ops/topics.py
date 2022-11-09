@@ -60,6 +60,7 @@ def manual_coins():
         'JUNO': {'JUNO'},
         'OP': {'Optimism'},
         'NFT': {'NFT', 'non fungible token, non-fungible token'},
+        'FTT': {'FTT'},
     }
 
 
