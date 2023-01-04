@@ -61,6 +61,7 @@ def manual_coins():
         'OP': {'Optimism'},
         'NFT': {'NFT', 'non fungible token, non-fungible token'},
         'FTT': {'FTT'},
+        'BONK': {'BONK'},
     }
 
 
