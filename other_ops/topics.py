@@ -62,6 +62,7 @@ def manual_coins():
         'NFT': {'NFT', 'non fungible token, non-fungible token'},
         'FTT': {'FTT'},
         'BONK': {'BONK'},
+        'T': {'Threshold'},
     }
 
 
