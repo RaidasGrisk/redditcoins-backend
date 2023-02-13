@@ -63,6 +63,7 @@ def manual_coins():
         'FTT': {'FTT'},
         'BONK': {'BONK'},
         'T': {'Threshold'},
+        'PRO': {'Propy'},
     }
 
 
