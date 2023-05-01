@@ -64,6 +64,8 @@ def manual_coins():
         'BONK': {'BONK'},
         'T': {'Threshold'},
         'PRO': {'Propy'},
+        'PEPE': {'PEPE'},
+        'AIDOGE': {'AIDOGE'},
     }
 
 
