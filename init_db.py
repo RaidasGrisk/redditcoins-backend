@@ -14,7 +14,6 @@ if __name__ == '__main__':
             'CREATE DATABASE "reddit"'
         )
 
-    # connect again to the create database
     # what the hell, how do you create db and then
     # create table inside that db? The only way to
     # make a new connection? WTF?
@@ -27,12 +26,11 @@ if __name__ == '__main__':
         cols = """
                 _id VARCHAR PRIMARY KEY,
                 created_utc INT,
-                ups INT,
-                num_comments INT,
                 title VARCHAR,
-                body VARCHAR
+                body VARCHAR,
+                selftext VARCHAR
         """
-        subreddits = ['cryptocurrency', 'satoshistreetbets']
+        subreddits = ['cryptocurrency']
         for subreddit in subreddits:
             cur.execute(
                 f'DROP TABLE IF EXISTS {subreddit};'
@@ -53,14 +51,13 @@ if __name__ == '__main__':
         # conversion on every query (speed tests show this
         # cuts time from 450 to 280 ms for 10 mln rows)
 
-        # Lets set the id to unique identifier so that
+        # Let's set the id to unique identifier so that
         # when updating topic values we do not add new
         # records everytime we do the op over table with
         # already present records.
         cols = """
                 _id VARCHAR PRIMARY KEY,
                 created_time timestamp,
-                ups INT,
                 is_comment BOOLEAN,
                 topic VARCHAR
         """

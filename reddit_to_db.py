@@ -1,73 +1,64 @@
 """
-Okay, so instead of pulling the data from reddit every x minutes
-we can actually capture the stream of reddit data and push to db.
-This way we will capture more comments and the code base is actually simpler.
-
-So this file replaces both get_reddit_data.py and reddit_to_db.py
-
-To run this just do the following (it will run forever):
-python3 reddit_to_db_2.py --subreddit cryptocurrency
-
-TODO: https://www.reddit.com/r/redditdev/comments/ohgtid/simultaneously_streaming_comments_submissions/
-TODO: https://stackoverflow.com/questions/55299564/join-multiple-async-generators-in-python
-
 TODO: set up new db
-TODO: setup VM with data capture and push to new DB
+TODO: setup VM with data stream and push to new DB
 TODO: migrate old data to new db
 TODO: create db jobs (daily / hourly / web_data)
 TODO: create API
 TODO: vercel website
-
 """
 
 import asyncpraw
 import asyncio
 import psycopg
-from typing import Union
 import time
 from private import reddit_details, db_details
-import argparse
+from aiostream import stream
 
 
-def filter_and_fix_comment(comment) -> Union[dict, None]:
-    # first lets filter out admin comments
-    # maybe lets not do this, this is fine
-    # admin_ids = ['haa5lmp']
-
-    # for some reason the comment returned by the api
-    # has an attr num_comments that gives the number
-    # of comments in the parent comment or submission
-    # so lets set it to None for now.
-    comment['num_comments'] = None
-
-    return comment
-
-
-def parse_comment(comment: asyncpraw.reddit.Comment) -> dict:
+def parse_item(item: asyncpraw.reddit.Comment | asyncpraw.reddit.Submission) -> dict:
+    # the item can be either a comment or a submission
+    # comments have body attr, submissions have title and selftext attrs
+    # lets gather all of them and set it to None if it does not exist
     attrs = [
         'id',
         'created_utc',
-        'ups',
-        'num_comments',
-        'title',
-        'body',
+        'title',  # only submissions
+        'body',  # only comments
+        'selftext',  # only submissions
     ]
-    return {key: getattr(comment, key, None) for key in attrs}
+    return {key: getattr(item, key, None) for key in attrs}
 
 
-async def comment_stream(subreddit: str):
-    reddit = asyncpraw.Reddit(**reddit_details)
-    async with reddit:
-        subreddit = await reddit.subreddit(subreddit)
+async def reddit_stream(reddit_details, subreddit):
+    # Does the following:
+    # 1. create comment stream
+    # 2. create submission stream
+    # 3. merge both streams into a single stream
+    # 4. yield stream items
+
+    async def comment_stream(subreddit: asyncpraw.reddit.Subreddit) -> asyncpraw.Reddit.comment:
         async for comment in subreddit.stream.comments():
             yield comment
 
+    async def submission_stream(subreddit: asyncpraw.reddit.Subreddit) -> asyncpraw.Reddit.submission:
+        async for submission in subreddit.stream.submissions():
+            yield submission
 
-async def main(subreddit: str):
+    reddit = asyncpraw.Reddit(**reddit_details)
+    async with reddit:
+        subreddit_ = await reddit.subreddit(subreddit)
+        merged_stream = stream.merge(comment_stream(subreddit_), submission_stream(subreddit_))
+        async with merged_stream.stream() as streamer:
+            async for item in streamer:
+                yield item
+
+
+async def main(reddit_details: dict, subreddit: str) -> None:
+
     # define db query
-    columns = ['_id', 'created_utc', 'ups', 'num_comments', 'title', 'body']
+    columns = ['_id', 'created_utc', 'title', 'body', 'selftext']
     query = f"""
-        INSERT INTO {subreddit} ({', '.join(columns)}) VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO {subreddit} ({', '.join(columns)}) VALUES (%s, %s, %s, %s, %s)
         ON CONFLICT (_id)
         DO UPDATE SET ({', '.join(columns[1:])})
             = ({", ".join(['EXCLUDED.' + col for col in columns[1:]])}) 
@@ -78,15 +69,14 @@ async def main(subreddit: str):
     # and connect to the db once and push transactions through it
     # but cant install the required dependencies.
     # So lets just wrap everything around a single connection for now.
+    # TODO: https://www.psycopg.org/psycopg3/docs/advanced/pool.html
     async with await psycopg.AsyncConnection.connect(**db_details, dbname='reddit') as aconn:
         async with aconn:
-            # now lets deal with getting the comment data stream
-            # and pushing it into the db with the connection above
-            async for comment in comment_stream(subreddit):
-                comment_ = parse_comment(comment)
-                comment_ = filter_and_fix_comment(comment_)
-                if comment_:
-                    await aconn.cursor().execute(query, tuple(comment_.values()))
+            streamer = reddit_stream(reddit_details, subreddit)
+            async for item in streamer:
+                if item:
+                    item_ = parse_item(item)
+                    await aconn.cursor().execute(query, tuple(item_.values()))
                     await aconn.commit()
 
                     count += 1
@@ -98,20 +88,13 @@ async def main(subreddit: str):
 
 
 if __name__ == "__main__":
-
-    # parse args
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--subreddit', type=str, default='cryptocurrency')
-    args = parser.parse_args()
-    args_dict = vars(args)
-
     while True:
         try:
-            asyncio.run(main(subreddit=args_dict['subreddit']))
+            asyncio.run(main(reddit_details=reddit_details, subreddit='cryptocurrency'))
         except Exception as e:
             print(
                 'Failed to run the main loop. Time:',
                 time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                 'Error: ', e
             )
-            time.sleep(60)
+            time.sleep(10)
