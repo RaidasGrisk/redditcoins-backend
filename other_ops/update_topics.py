@@ -6,14 +6,16 @@ TODO:
 """
 
 # to be able to launch this from terminal
-import sys, os
+import sys
+import os
 sys.path.append(os.getcwd())
 
+import time
 from private import db_details
 import asyncpg
 import asyncio
 import argparse
-import datetime, time
+import datetime
 import re
 from typing import Set, List
 from other_ops.topics import get_topics
@@ -115,18 +117,13 @@ async def update_topics(
             # maybe not the best solution, but lets concat all text
             # to single string here, so we do this only once per doc
             doc_text = ' | '.join(
-                [doc.get(key) for key in ['title', 'body'] if doc.get(key)]
+                [doc.get(key) for key in ['title', 'body', 'selftext'] if doc.get(key)]
             )
 
-            # loop over topics
-            # when simply looping over each topic and looking
-            # for matches, when then number of topics increase
-            # the speed is reduced dramatically.
-            # here's an idea how to speed things up:
-            # instead of looping over each topic, concat
-            # topic_vals together and do single regex search
-            # per doc. Then if match is hit, find the
-            # corresponding keys.
+            # As the number of topics increase in size the speed is reduced dramatically.
+            # Here's an idea how to speed things up: instead of looping over each topic, concat
+            # topic_vals together and do single regex search per doc. Then if match is hit,
+            # find the corresponding keys.
             if all_topics_re_pattern.search(doc_text):
                 for topic_key, topic_re_pattern in topics_re_compiled.items():
                     if topic_re_pattern.search(doc_text):
@@ -136,7 +133,7 @@ async def update_topics(
                             '_id': doc['_id'] + '_' + topic_key,
                             'created_time': datetime.datetime.utcfromtimestamp(doc["created_utc"]).strftime('%Y-%m-%d %H:%M:%S'),
                             'ups': doc['ups'],
-                            'is_comment': doc.get('title') == None,
+                            'is_comment': doc.get('title') is None,
                             'topic': topic_key
                         }
 
@@ -170,8 +167,6 @@ async def update_topics(
                     f'updated {total_updates} '
                     f'last date {datetime.datetime.fromtimestamp(doc["created_utc"])}'
                 )
-
-# asyncio.run(update_topics(subreddit='satoshistreetbets', start=1585602000, end=1695688400))
 
 
 async def wipe_topics(
@@ -216,7 +211,7 @@ if __name__ == '__main__':
 
     print(args_dict)
 
-    # lets not run these two one after another
+    # let's not run these two one after another
     # lets run wipe if True else run update
     # the logic is rather bad but get on with it
     if args_dict.pop('wipe_topics'):
