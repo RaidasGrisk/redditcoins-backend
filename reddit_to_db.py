@@ -53,7 +53,7 @@ async def reddit_stream(reddit_details, subreddit):
                 yield item
 
 
-async def main(reddit_details: dict, subreddit: str) -> None:
+async def main(reddit_details: dict, subreddit: str = 'cryptocurrency') -> None:
 
     # define db query
     columns = ['_id', 'created_utc', 'title', 'body', 'selftext']

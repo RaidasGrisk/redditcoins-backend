@@ -1,20 +1,16 @@
-version: "3.7"
+version: "3.8"
 
 services:
-  timescale:
-    image: timescale/timescaledb:1.7.4-pg12
-    container_name: timescale
+  db:
+    image: postgres:latest
     restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
     volumes:
       - /var/lib/postgresql/data
     ports:
       - 5432:5432
-    environment:
-#      POSTGRES_HOST: timescale
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: temp-pass
-    networks:
-      timescale_network:
 
   pgadmin:
     # Name of the container this service creates. Otherwise it's prefixed with the git repo name
@@ -30,9 +26,3 @@ services:
       PGADMIN_LISTEN_PORT: 9000
       PGADMIN_DEFAULT_EMAIL: mrraidas@gmail.com
       PGADMIN_DEFAULT_PASSWORD: temp-pass
-    networks:
-      timescale_network:
-
-networks:
-  timescale_network:
-    external: true

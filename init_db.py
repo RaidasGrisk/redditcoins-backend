@@ -57,7 +57,7 @@ if __name__ == '__main__':
         # already present records.
         cols = """
                 _id VARCHAR PRIMARY KEY,
-                created_time timestamp,
+                created_utc INT,
                 is_comment BOOLEAN,
                 topic VARCHAR
         """

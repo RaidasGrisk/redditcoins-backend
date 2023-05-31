@@ -21,45 +21,47 @@ from typing import Set, List
 from other_ops.topics import get_topics
 
 
-def get_regex_pattern(text_parts: Set[str]) -> re.Pattern:
-    """
-    https://stackoverflow.com/questions/6713310/regex-specify-space-or-start-of-string-and-space-or-end-of-string
-    (^|\s) would match space or start of string and
-    ($|\s) for space or end of string. Together it's:
-    (^|\s)stackoverflow($|\s)
+def get_regex_pattern(coin_names: [str], coin_text: [str]) -> re.Pattern:
+    # TODO: explain the two parts
 
-    for multiple possible matches modify the
-    middle as so: (stackoverflow|flow|stack)
-    lets add more or cases in front of the ticker
-    for example matching $ticker (^|\s|[$])
-    so now the following triggers a match:
-    'ETH', ' ETH', ' ETH ', '$ETH', '$ETH '
-    """
+    # coin names
+    coin_name_regex_pattern = r"\b(" + "|".join(coin_names) + r")\b"
 
-    # make regex string by inserting possible text_parts
-    text_parts_joined = "|".join(text_parts)
-    regex_pattern = f'(^|\s|[$])({text_parts_joined})($|,|.|!|\s)'
-    regex_pattern = re.compile(regex_pattern)
-    return regex_pattern
+    # coin text
+    coin_text_regex_pattern = \
+        r"(^|\s|[$])(" \
+        + "|".join(['(?i:' + text + ')' for text in coin_text]) \
+        + ")($|,|.|!|\s)"
+
+    # TODO: not very readable, but must do this else will match all cases.
+    if not coin_names:
+        return re.compile(coin_text_regex_pattern)
+    if not coin_text:
+        return re.compile(coin_name_regex_pattern)
+    if coin_names and coin_text:
+        return re.compile(coin_name_regex_pattern + '|' + coin_text_regex_pattern)
 
 
 def debug_regex_matching() -> None:
 
-    text_parts = {'ETH', 'etherium'}
-    full_texts = ['ETHfoo fooETH fooETHbar ETHfooFB ETHETHETH',
-                 'ETH', 'foo etherium', 'foo $ETH', 'foo$ETH',
-                  'ethernet, promETHeus', 'ETH,', 'ETH!']
+    coin_names = ['BTC']
+    coin_text = ['ETHEREUM', 'Bitcoin']
 
-    pattern = get_regex_pattern(text_parts)
-    for full_text in full_texts:
-        if pattern.search(full_text):
-            print('Match:', full_text, text_parts)
+    items = [
+        'Oh noes! bitcoin went down a tiny bit',
+        'ethereum'
+    ]
+
+    pattern = get_regex_pattern(coin_names, coin_text)
+    for item in items:
+        if pattern.search(item):
+            print('Match:', item)
         else:
-            print('No match:', full_text, text_parts)
+            print('No match:', item)
 
 
 async def update_topics(
-        subreddit: str,
+        subreddit: str = 'cryptocurrency',
         start: int = None,
         end: int = None,
         topics_to_update: List[str] = None
@@ -78,13 +80,20 @@ async def update_topics(
     # possible matches into a single re pattern
     # will search this pattern first, and if found
     # will do a full scan over each topic separately
-    all_topics_re_string = {topic for topics in topics.values() for topic in topics}
-    all_topics_re_string = get_regex_pattern(all_topics_re_string)
-    all_topics_re_pattern = re.compile(all_topics_re_string)
+
+    coin_names = []
+    for coin in topics.values():
+        coin_names.extend(coin['name'])
+
+    coin_text = []
+    for coin in topics.values():
+        coin_text.extend(coin['other'])
+
+    regex_pattern = get_regex_pattern(coin_names, coin_text)
 
     # pre compile every re pattern so that
     # we do this only once before the main loop
-    topics_re_compiled = {topic: get_regex_pattern(values) for topic, values in topics.items()}
+    topics_re_compiled = {topic: get_regex_pattern(values['name'], values['other']) for topic, values in topics.items()}
 
     conn = await asyncpg.connect(**db_details, database='reddit')
 
@@ -124,49 +133,49 @@ async def update_topics(
             # Here's an idea how to speed things up: instead of looping over each topic, concat
             # topic_vals together and do single regex search per doc. Then if match is hit,
             # find the corresponding keys.
-            if all_topics_re_pattern.search(doc_text):
+            if regex_pattern.search(doc_text):
                 for topic_key, topic_re_pattern in topics_re_compiled.items():
                     if topic_re_pattern.search(doc_text):
 
                         # add topic
                         new_doc = {
                             '_id': doc['_id'] + '_' + topic_key,
-                            'created_time': datetime.datetime.utcfromtimestamp(doc["created_utc"]).strftime('%Y-%m-%d %H:%M:%S'),
-                            'ups': doc['ups'],
+                            'created_utc': doc['created_utc'],
                             'is_comment': doc.get('title') is None,
                             'topic': topic_key
                         }
 
                         insert_sql = f"""
                             INSERT INTO {subreddit + '_'} (
-                                _id, created_time, ups, is_comment, topic
+                                _id, created_utc, is_comment, topic
                             ) VALUES {
                                 new_doc['_id'], 
-                                new_doc['created_time'], 
-                                new_doc['ups'], 
+                                new_doc['created_utc'], 
                                 new_doc['is_comment'], 
                                 new_doc['topic']
                             }
                             ON CONFLICT (_id)
-                            DO UPDATE SET (created_time, ups, is_comment, topic)
+                            DO UPDATE SET (created_utc, is_comment, topic)
                                 = (
-                                    EXCLUDED.created_time, EXCLUDED.ups, 
-                                    EXCLUDED.is_comment, EXCLUDED.topic
+                                    EXCLUDED.created_utc, EXCLUDED.is_comment, EXCLUDED.topic
                                 ) 
                             """
 
-                        # TODO: https://magicstack.github.io/asyncpg/current/api/index.html#asyncpg.connection.Connection.executemany
+                        # TODO: asyncio.Queue()
                         await conn.execute(insert_sql)
                         total_updates += 1
 
             total_docs_scanned += 1
-            if total_docs_scanned % 10000 == 0:
+            if total_docs_scanned % 100 == 0:
                 print(
                     f'Total {total_docs} '
                     f'Scanned: {total_docs_scanned} '
                     f'updated {total_updates} '
                     f'last date {datetime.datetime.fromtimestamp(doc["created_utc"])}'
                 )
+
+for i in range(100):
+    await update_topics()
 
 
 async def wipe_topics(
