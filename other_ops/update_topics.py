@@ -4,8 +4,6 @@ TODO:
  2. current speed bottleneck is due to db conn update_one fn.
     consider update_many
 """
-
-# to be able to launch this from terminal
 import sys
 import os
 sys.path.append(os.getcwd())
@@ -24,14 +22,8 @@ from other_ops.topics import get_topics
 def get_regex_pattern(coin_names: [str], coin_text: [str]) -> re.Pattern:
     # TODO: explain the two parts
 
-    # coin names
-    coin_name_regex_pattern = r"\b(" + "|".join(coin_names) + r")\b"
-
-    # coin text
-    coin_text_regex_pattern = \
-        r"(^|\s|[$])(" \
-        + "|".join(['(?i:' + text + ')' for text in coin_text]) \
-        + ")($|,|.|!|\s)"
+    coin_name_regex_pattern = r'(^|\s|[$])(' + '|'.join(coin_names) + ')($|,|.|!|\s)'
+    coin_text_regex_pattern = r'(?i:\b(?:' + '|'.join(coin_text) + r')\b)'
 
     # TODO: not very readable, but must do this else will match all cases.
     if not coin_names:
@@ -44,16 +36,50 @@ def get_regex_pattern(coin_names: [str], coin_text: [str]) -> re.Pattern:
 
 def debug_regex_matching() -> None:
 
-    coin_names = ['BTC']
-    coin_text = ['ETHEREUM', 'Bitcoin']
+    coin_names = ['ETH']
+    coin_text = ['ethereum']
 
-    items = [
-        'Oh noes! bitcoin went down a tiny bit',
-        'ethereum'
+    positive = [
+        'ethereum',
+        'kjhasd ETHEREUM adsasd',
+        'kjhagsd $ETH',
+        'ETH',
+        ' ETH',
+        'ETH ',
+        ' ETH ',
+        '$ETH ',
+        'ETH.'
+
+        'asd EthereuM asd',
+        'ethereum',
+        ' ethereum',
+        'ethereum ',
+        'ethereum,',
+    ]
+
+    negative = [
+        'akjshdETHjashdk',
+        'kjahsdETH',
+        'kjahsdETH ',
+        'aETH',
+        '-ETH',
+        '.ETH',
+
+        'ethereuma',
+        'aethereum',
+        'ADSethereum',
+        'ethereumDDD',
+        '1ethereum',
     ]
 
     pattern = get_regex_pattern(coin_names, coin_text)
-    for item in items:
+    for item in positive:
+        if pattern.search(item):
+            print('Match:', item)
+        else:
+            print('No match:', item)
+
+    for item in negative:
         if pattern.search(item):
             print('Match:', item)
         else:
@@ -117,6 +143,17 @@ async def update_topics(
     total_docs = total_docs_[0]['count']
     print(f'Total {total_docs}')
 
+    insert_sql = f"""
+        INSERT INTO {subreddit + '_'} (
+            _id, created_utc, is_comment, topic
+        ) VALUES ($1, $2, $3, $4)
+        ON CONFLICT (_id)
+        DO UPDATE SET (created_utc, is_comment, topic)
+            = (
+                EXCLUDED.created_utc, EXCLUDED.is_comment, EXCLUDED.topic
+            ) 
+    """
+    insert_rows = []
     async with conn.transaction():
         async for doc in conn.cursor(select_sql):
 
@@ -144,25 +181,15 @@ async def update_topics(
                             'is_comment': doc.get('title') is None,
                             'topic': topic_key
                         }
+                        insert_rows.append(new_doc)
 
-                        insert_sql = f"""
-                            INSERT INTO {subreddit + '_'} (
-                                _id, created_utc, is_comment, topic
-                            ) VALUES {
-                                new_doc['_id'], 
-                                new_doc['created_utc'], 
-                                new_doc['is_comment'], 
-                                new_doc['topic']
-                            }
-                            ON CONFLICT (_id)
-                            DO UPDATE SET (created_utc, is_comment, topic)
-                                = (
-                                    EXCLUDED.created_utc, EXCLUDED.is_comment, EXCLUDED.topic
-                                ) 
-                            """
+                        if len(insert_rows) >= 500:
+                            # Perform batch insert
+                            values = [(row['_id'], row['created_utc'], row['is_comment'], row['topic']) for row in
+                                      insert_rows]
+                            await conn.executemany(insert_sql, values)
+                            insert_rows = []
 
-                        # TODO: asyncio.Queue()
-                        await conn.execute(insert_sql)
                         total_updates += 1
 
             total_docs_scanned += 1
@@ -174,24 +201,10 @@ async def update_topics(
                     f'last date {datetime.datetime.fromtimestamp(doc["created_utc"])}'
                 )
 
-for i in range(100):
-    await update_topics()
-
-
-async def wipe_topics(
-        subreddit: str,
-        start: int = None,
-        end: int = None
-) -> None:
-
-    conn = await asyncpg.connect(**db_details, database='reddit')
-    delete_sql = ''.join([
-        f'SELECT * FROM {subreddit + "_"} ',
-        f'WHERE created_utc >= {start} ' if start else '',
-        f'AND created_utc < {end} ' if end else '',
-    ])
-    _ = await conn.execute(delete_sql)
-    print(_)
+        # finish any remaining rows
+        if insert_rows:
+            values = [(row['_id'], row['created_utc'], row['is_comment'], row['topic']) for row in insert_rows]
+            await conn.executemany(insert_sql, values)
 
 
 def date_string_to_timestamp(s: str) -> int:
@@ -208,7 +221,6 @@ if __name__ == '__main__':
     parser.add_argument('--start', type=str, default=None)
     parser.add_argument('--end', type=str, default=None)
     parser.add_argument('--topics_to_update', type=str, nargs='+', default=[])
-    parser.add_argument('--wipe_topics', type=bool, default=False)
     args = parser.parse_args()
 
     # deal with args format
@@ -218,15 +230,4 @@ if __name__ == '__main__':
     if args_dict['end']:
         args_dict['end'] = date_string_to_timestamp(args_dict['end'])
 
-    print(args_dict)
-
-    # let's not run these two one after another
-    # lets run wipe if True else run update
-    # the logic is rather bad but get on with it
-    if args_dict.pop('wipe_topics'):
-        # pop another arg as it is not
-        # part of wipe_topics function
-        args_dict.pop('topics_type', None)
-        asyncio.run(wipe_topics(**args_dict))
-    else:
-        asyncio.run(update_topics(**args_dict))
+    asyncio.run(update_topics(**args_dict))
