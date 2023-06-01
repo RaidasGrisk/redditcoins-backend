@@ -1,7 +1,7 @@
 """
 TODO: set up new db
 TODO: setup VM with data stream and push to new DB
-TODO: migrate old data to new db
+TODO: migrate old data to new db: PGPASSWORD=asd pg_dump -U admin -h 10.30.20.100 -p 5432 -n cryptocurrency -d reddit > db_backup.sql
 TODO: create db jobs (daily / hourly / web_data)
 TODO: create API
 TODO: vercel website
