@@ -19,7 +19,7 @@ python reddit_to_db.py \
 python reddit_to_db.py \
     --subreddit satoshistreetbets \
     --limit 100
-    
+
 # data stream
 python reddit_to_db_2.py \
     --subreddit satoshistreetbets \
@@ -94,3 +94,21 @@ Add this to crontab to update the topics every x mins
 ```
 */10 * * * * /home/mrraidas/reddit-to-db/topics_update.sh
 ```
+
+# basic structure
+
+┌────┐      stores comments / submissions
+│ DB ├────► stores coins and mention references
+└────┘      runs cron tabs to generate web data
+
+┌────┐      pull data from reddit, push to db
+│ VM ├────► every hour pull data from db, detect mentions, push it to db
+└────┘
+
+┌─────┐
+│ API ├───► interface to the db
+└─────┘
+
+┌─────┐
+│ WWW ├───► frontend on Vercel
+└─────┘
