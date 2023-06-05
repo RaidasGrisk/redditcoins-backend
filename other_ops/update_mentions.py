@@ -16,7 +16,7 @@ import argparse
 import datetime
 import re
 from typing import Set, List
-from other_ops.topics import get_topics
+from other_ops.coins import get_coins
 
 
 def get_regex_pattern(coin_names: [str], coin_text: [str]) -> re.Pattern:
@@ -86,20 +86,23 @@ def debug_regex_matching() -> None:
             print('No match:', item)
 
 
-async def update_topics(
+async def update_mentions(
         subreddit: str = 'cryptocurrency',
         start: int = None,
         end: int = None,
-        topics_to_update: List[str] = None
+        coins_to_update: List[str] = None
 ) -> None:
 
+    # log
+    print('Updating mentions, UTC:', datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S'))
+
     # get topics and do things to increase the speed
-    topics = get_topics()
+    coins = get_coins()
 
     # often I add a single or two coins and have to rescan
     # db for matches. Update only selected coins to increase speed
-    if topics_to_update:
-        topics = {topic: topics[topic] for topic in topics_to_update}
+    if coins_to_update:
+        coins = {topic: coins[topic] for topic in coins_to_update}
 
     # the following is to increase the speed perf:
     # before looping over each topic, combine all
@@ -108,18 +111,18 @@ async def update_topics(
     # will do a full scan over each topic separately
 
     coin_names = []
-    for coin in topics.values():
+    for coin in coins.values():
         coin_names.extend(coin['name'])
 
     coin_text = []
-    for coin in topics.values():
+    for coin in coins.values():
         coin_text.extend(coin['other'])
 
     regex_pattern = get_regex_pattern(coin_names, coin_text)
 
     # pre compile every re pattern so that
     # we do this only once before the main loop
-    topics_re_compiled = {topic: get_regex_pattern(values['name'], values['other']) for topic, values in topics.items()}
+    coins_re_compiled = {topic: get_regex_pattern(values['name'], values['other']) for topic, values in coins.items()}
 
     conn = await asyncpg.connect(**db_details, database='reddit')
 
@@ -141,7 +144,7 @@ async def update_topics(
     total_updates = 0
     total_docs_ = await conn.fetch(total_count_sql)
     total_docs = total_docs_[0]['count']
-    print(f'Total {total_docs}')
+    print(f'Total docs {total_docs} ({start} - {end})')
 
     insert_sql = f"""
         INSERT INTO {subreddit + '_'} (
@@ -153,7 +156,7 @@ async def update_topics(
                 EXCLUDED.created_utc, EXCLUDED.is_comment, EXCLUDED.topic
             ) 
     """
-    insert_rows = []
+    rows = []
     async with conn.transaction():
         async for doc in conn.cursor(select_sql):
 
@@ -166,12 +169,12 @@ async def update_topics(
                 [doc.get(key) for key in ['title', 'body', 'selftext'] if doc.get(key)]
             )
 
-            # As the number of topics increase in size the speed is reduced dramatically.
+            # As the number of coins increase in size the speed is reduced dramatically.
             # Here's an idea how to speed things up: instead of looping over each topic, concat
             # topic_vals together and do single regex search per doc. Then if match is hit,
             # find the corresponding keys.
             if regex_pattern.search(doc_text):
-                for topic_key, topic_re_pattern in topics_re_compiled.items():
+                for topic_key, topic_re_pattern in coins_re_compiled.items():
                     if topic_re_pattern.search(doc_text):
 
                         # add topic
@@ -181,19 +184,18 @@ async def update_topics(
                             'is_comment': doc.get('title') is None,
                             'topic': topic_key
                         }
-                        insert_rows.append(new_doc)
+                        rows.append(new_doc)
 
-                        if len(insert_rows) >= 500:
+                        if len(rows) >= 500:
                             # Perform batch insert
-                            values = [(row['_id'], row['created_utc'], row['is_comment'], row['topic']) for row in
-                                      insert_rows]
+                            values = [(row['_id'], row['created_utc'], row['is_comment'], row['topic']) for row in rows]
                             await conn.executemany(insert_sql, values)
-                            insert_rows = []
+                            rows = []
 
                         total_updates += 1
 
             total_docs_scanned += 1
-            if total_docs_scanned % 100 == 0:
+            if total_docs_scanned % 1000 == 0:
                 print(
                     f'Total {total_docs} '
                     f'Scanned: {total_docs_scanned} '
@@ -202,8 +204,8 @@ async def update_topics(
                 )
 
         # finish any remaining rows
-        if insert_rows:
-            values = [(row['_id'], row['created_utc'], row['is_comment'], row['topic']) for row in insert_rows]
+        if rows:
+            values = [(row['_id'], row['created_utc'], row['is_comment'], row['topic']) for row in rows]
             await conn.executemany(insert_sql, values)
 
 
@@ -220,7 +222,8 @@ if __name__ == '__main__':
     parser.add_argument('--subreddit', type=str, default='cryptocurrency')
     parser.add_argument('--start', type=str, default=None)
     parser.add_argument('--end', type=str, default=None)
-    parser.add_argument('--topics_to_update', type=str, nargs='+', default=[])
+    parser.add_argument('--update_last_hour', type=str, default=True)
+    parser.add_argument('--coins_to_update', type=str, nargs='+', default=[])
     args = parser.parse_args()
 
     # deal with args format
@@ -230,4 +233,12 @@ if __name__ == '__main__':
     if args_dict['end']:
         args_dict['end'] = date_string_to_timestamp(args_dict['end'])
 
-    asyncio.run(update_topics(**args_dict))
+    # update from the last rounded hour to now.
+    if args_dict['update_last_hour']:
+        time = datetime.datetime.now(datetime.timezone.utc)
+        time_minus_one_hour = (time - datetime.timedelta(hours=1)).replace(microsecond=0, second=0, minute=0)
+        start = datetime.datetime.timestamp(time_minus_one_hour)
+        args_dict['start'] = start
+        args_dict.pop('update_last_hour')
+
+    asyncio.run(update_mentions(**args_dict))

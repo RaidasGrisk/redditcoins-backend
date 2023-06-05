@@ -31,7 +31,7 @@ def is_data_correct(data):
     if not all(coin in data['cryptocurrency'].keys() for coin in coins_to_check):
         return False
     
-    # check if volume is not to low
+    # check if volume is not too low
     btc_vol = data['cryptocurrency']['BTC']['data'][0]['volume']
     eth_vol = data['cryptocurrency']['ETH']['data'][0]['volume']
     if btc_vol < 80 or eth_vol < 30:
@@ -46,6 +46,7 @@ def is_data_correct(data):
 
     # none of the above ifs hit than return true
     return True
+
 
 def make_comment():
 
@@ -91,7 +92,7 @@ async def main(comment):
         reddit = asyncpraw.Reddit(**reddit_login)
         subreddit = await reddit.subreddit('cryptocurrency')
         async with reddit:
-            async for submission in subreddit.hot(limit=20):
+            async for submission in subreddit.hot(limit=50):
                 # find the submission we want. Not very convenient,
                 # but can't quickly find the patter I should be using
                 # so lets just look for partial title match

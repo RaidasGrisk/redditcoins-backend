@@ -1,0 +1,1 @@
+1 * * * * cd /app && python3 other_ops/update_mentions.py > /proc/1/fd/1 2>/proc/1/fd/2

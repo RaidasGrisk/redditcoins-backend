@@ -82,7 +82,7 @@ def create_cron_jobs():
             'name': 'hourly_data',
             'aggregation_helper': 'hour',
             'lookback_time_in_hours': 24,
-            'cron_scedule': '5 * * * *'  # every hour at 5 minutes
+            'cron_scedule': '5 * * * *'  # every hour at 1 minutes (at 1 minute, mentions are updated)
         },
         {
             'name': 'daily_data',
@@ -158,7 +158,7 @@ def create_cron_jobs():
                 f"""
                 SELECT cron.schedule_in_database(
                     '{job['name']}',
-                    '5 * * * *',
+                    '{job['cron_scedule']}',
                     'SELECT {job['name']}()',
                     'reddit'
                 );
@@ -167,5 +167,9 @@ def create_cron_jobs():
 
 
 if __name__ == '__main__':
-    create_database_and_tables()
+    # Be careful, running this will erase the db tables with data.
+    # Commenting it out to make sure we don't run in accidentally
+    # create_database_and_tables()
+
+    # create cron jobs
     create_cron_jobs()

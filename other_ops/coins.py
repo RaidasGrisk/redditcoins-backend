@@ -238,7 +238,7 @@ def manual_coins():
     }
 
 
-def get_topics() -> dict:
+def get_coins() -> dict:
     # in case of duplicate key in dicts
     # latest dict overwrites previous dicts
     return {**coinbase_coins(), **manual_coins()}
