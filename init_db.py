@@ -100,9 +100,16 @@ def create_cron_jobs():
 
         for job in cron_jobs:
 
+            # The query is split into two parts (there's a marked break in the middle).
+            # The first part gathers the coins and corresponding mentions - it's simple.
+            # The second part is because there are time gaps in timeseries.
+            # Filling the time gaps to create proper time-series gets quite expensive.
+            # Therefore, lets do it only once per hour using the query below.
+
             query = f"""
                 DROP TABLE IF EXISTS {job['name']};
                 CREATE TABLE {job['name']} AS
+                
                 WITH last_period AS (
                     SELECT (
                         DATE_TRUNC('{job['aggregation_helper']}', CURRENT_TIMESTAMP AT TIME ZONE 'UTC') 
@@ -115,14 +122,33 @@ def create_cron_jobs():
                         created_utc <= EXTRACT(EPOCH FROM (SELECT last_timestamp FROM last_period))
                         AND created_utc > EXTRACT(EPOCH FROM (SELECT last_timestamp FROM last_period)) 
                         - ({job['lookback_time_in_hours']} * 60 * 60)
+                ),
+                data_with_time_gaps AS (
+                    SELECT 
+                        topic,
+                        DATE_TRUNC('{job['aggregation_helper']}', TIMESTAMP 'epoch' + created_utc * INTERVAL '1 second') AS gran,
+                        COUNT(*) AS count
+                    FROM data_
+                    GROUP BY gran, topic
+                ),
+                
+                -----------------------
+                
+                distinct_topics AS (
+                  SELECT DISTINCT topic FROM data_with_time_gaps
+                ),
+                distinct_grans AS (
+                  SELECT generate_series(min(gran), max(gran), '1 {job['aggregation_helper']}'::interval) AS gran
+                  FROM data_with_time_gaps
+                ),
+                topic_gran_combinations AS (
+                  SELECT dt.topic, dg.gran
+                  FROM distinct_topics dt, distinct_grans dg
                 )
-                SELECT 
-                    topic,
-                    DATE_TRUNC('{job['aggregation_helper']}', TIMESTAMP 'epoch' + created_utc * INTERVAL '1 second') AS gran,
-                    COUNT(*) AS count
-                FROM data_
-                GROUP BY gran, topic
-                ORDER BY topic, gran DESC;
+                SELECT tgc.topic, tgc.gran, COALESCE(yt.count, 0) AS count
+                FROM topic_gran_combinations tgc
+                LEFT JOIN data_with_time_gaps yt ON tgc.topic = yt.topic AND tgc.gran = yt.gran
+                ORDER BY tgc.topic, tgc.gran;
             """
 
             cur.execute(
