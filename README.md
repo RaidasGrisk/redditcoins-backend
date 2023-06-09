@@ -1,4 +1,11 @@
-# Basic structure of the whole system
+# Basic structure
+
+| Part  | Repo  |
+|---|---|
+| DB | this repo  |
+| BACKEND | this repo  |
+| API | [redditcoins-api](https://github.com/RaidasGrisk/reddit-coin-app)  |
+| WEB | [redditcoins-web](https://github.com/RaidasGrisk/reddit-coin-web)  |
 
 ![](https://i.imgur.com/nNZYXje.png)
 
@@ -10,13 +17,6 @@
 | WEB     | Vuejs deployed on Vercel                |
 +---------+-----------------------------------------+
 ```
-| Part  | Repo  |
-|---|---|
-| DB | this repo  |
-| BACKEND | this repo  |
-| API | [reddit-coin-app](https://github.com/RaidasGrisk/reddit-coin-app)  |
-| WEB | [reddit-coin-wab](https://github.com/RaidasGrisk/reddit-coin-web)  |
-
 
 # DB structure
 
@@ -94,3 +94,12 @@ db_details = {
 # Production
 
 Run the ```Dockerfile``` that does everything (except, create the db).
+
+# TODOs
+
+- [x] set up new db
+- [x] setup VM with data stream and push to new DB
+- [x] migrate old data to new db: pg_dump -U <USERNAME> -h <IP ADDRESS> -p <PORT> -n <TABLE> -d <DATABASE> > db_dump.sql
+- [x] create db jobs (daily / hourly / web_data)
+- [x] create API
+- [x] vercel website
