@@ -1,29 +1,26 @@
 """
-Posts a comment to the daily with
-a table of most mentioned coins
+Posts a comment to the daily with a table of most mentioned coins
 
 Add this to crontab to run every x hours.
 0 */2 * * * python3 /home/mrraidas/reddit-to-db/other_ops/post_bot.py
 """
 
 # to be able to launch this from terminal and crontab
-import sys, os
+import sys
+import os
 sys.path.append(os.getcwd())
 
 import asyncio
 import asyncpraw
 from private import reddit_login
 import requests
-import pandas as pd
 from datetime import datetime, timedelta
 
 
 def is_data_correct(data):
     """
-    check if the response is valid
-    and if should continue to make the post.
-    This is just in case something goes wrong.
-    So we do not spam reddit with gibberish.
+    In case something goes wrong, check if the response is valid.
+    Issues had happened before, lets not spam reddit with gibberish.
     """
 
     # check if popular coins are in the data
@@ -65,9 +62,9 @@ def make_comment():
         coin: data['cryptocurrency'][coin]['data'][0]['volume']
         for coin in data['cryptocurrency']
     }
-    coin_data = pd.Series(data_dict).sort_values(ascending=False)[:20]
+    sorted_coins = sorted(data_dict, key=data_dict.get, reverse=True)
 
-    # parse df into string (comment)
+    # parse data into string (comment)
     # messy due to \n and reddit markdown
     # '  \n' makes new line
     # '\n\n' makes new paragraph
@@ -78,8 +75,8 @@ def make_comment():
         '''|:-|:-|  \n'''
     )
 
-    for coin, value in coin_data.iteritems():
-        comment += f'|{coin}|{str(value)}|  \n'
+    for coin in sorted_coins[:20]:
+        comment += f'|{coin}|{str(data_dict[coin])}|  \n'
 
     # for the final line lets add the source and link to the app
     comment += '\n[Data source and app](https://www.redditcoins.app/)'
@@ -87,7 +84,7 @@ def make_comment():
     return comment
 
 
-async def main(comment):
+async def post_comment_on_reddit(comment):
     if comment:
         reddit = asyncpraw.Reddit(**reddit_login)
         subreddit = await reddit.subreddit('cryptocurrency')
@@ -102,5 +99,5 @@ async def main(comment):
 
 if __name__ == "__main__":
     asyncio.run(
-        main(make_comment())
+        post_comment_on_reddit(make_comment())
     )
