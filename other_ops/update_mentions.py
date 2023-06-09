@@ -95,9 +95,6 @@ async def update_mentions(
         coins_to_update: List[str] = None
 ) -> None:
 
-    # log
-    print('Updating mentions, UTC:', datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S'))
-
     # get topics and do things to increase the speed
     coins = get_coins()
 
@@ -146,7 +143,11 @@ async def update_mentions(
     total_updates = 0
     total_docs_ = await conn.fetch(total_count_sql)
     total_docs = total_docs_[0]['count']
-    print(f'Total docs {total_docs} ({start} - {end})')
+    print(
+        datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+        'Updating mentions.',
+        f'Total docs {total_docs} ({start} - {end})'
+    )
 
     insert_sql = f"""
         INSERT INTO {subreddit + '_'} (
@@ -223,7 +224,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # deal with args format
-
     def date_string_to_timestamp(s: str) -> int:
         date = datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
         tuple_ = date.timetuple()

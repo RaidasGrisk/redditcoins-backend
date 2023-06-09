@@ -1,18 +1,10 @@
-"""
-TODO: set up new db
-TODO: setup VM with data stream and push to new DB
-TODO: migrate old data to new db: PGPASSWORD=asd pg_dump -U admin -h 10.30.20.100 -p 5432 -n cryptocurrency -d reddit > db_backup.sql
-TODO: create db jobs (daily / hourly / web_data)
-TODO: create API
-TODO: vercel website
-"""
-
 import asyncpraw
 import asyncio
 import psycopg
 import time
 from private import reddit_details, db_details
 from aiostream import stream
+import datetime
 
 
 def parse_item(item: asyncpraw.reddit.Comment | asyncpraw.reddit.Submission) -> dict:
@@ -80,10 +72,10 @@ async def main(reddit_details: dict, subreddit: str = 'cryptocurrency') -> None:
                     await aconn.commit()
 
                     count += 1
-                    if count % 1000 == 0 or count == 1:
+                    if count % 10000 == 0 or count == 1:
                         print(
-                            time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-                            'pushed:', count
+                            datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
+                            'comms/subs pushed to db:', count
                         )
 
 
@@ -94,7 +86,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(
                 'Failed to run the main loop. Time:',
-                time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
                 'Error: ', e
             )
             time.sleep(10)
