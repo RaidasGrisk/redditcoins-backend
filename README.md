@@ -14,7 +14,7 @@
 | DB      | Postgress instance on google cloud      |
 | BACKEND | Small VM on google cloud                |
 | API     | Serverless RUN instance on google cloud |
-| WEB     | Vuejs deployed on Vercel                |
+| WEB     | Vuejs on Vercel                |
 +---------+-----------------------------------------+
 ```
 
@@ -68,7 +68,7 @@ coin mentions
 
 ```
 
-# Init local postgredb and interface
+# Init local postgredb and pgadmin
 ```
 docker-compose up
 python init_db.py  # better do manually
@@ -78,17 +78,27 @@ Credentials are stored inside ```./private.py``` (make this file before running 
 
 ```
 reddit_details = {
-    'client_id': 'CLIENT_ID',
-    'client_secret': 'CLIENT_SECRET',
-    'user_agent': 'my user agent'
+  'client_id': 'CLIENT_ID',
+  'client_secret': 'CLIENT_SECRET',
+  'user_agent': 'my user agent'
 }
 
 db_details = {
-    'host': '0.0.0.0',
-    'port': 27017,
-    'user': 'admin',
-    'password': 'pass',
+  'host': '0.0.0.0',
+  'port': 27017,
+  'user': 'admin',
+  'password': 'pass',
 }
+
+# post bot
+reddit_login = {
+  'client_id': 'CLIENT_ID',
+  'client_secret': 'CLIENT_SECRET',
+  'user_agent': 'my user agent'
+  'username': 'USERNAME',
+  'password': 'PASSWORD'
+}
+
 ```
 
 # Production

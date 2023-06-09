@@ -75,7 +75,7 @@ async def main(reddit_details: dict, subreddit: str = 'cryptocurrency') -> None:
                     if count % 10000 == 0 or count == 1:
                         print(
                             datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S'),
-                            'comms/subs pushed to db:', count
+                            'comms/subms pushed to db:', count
                         )
 
 
