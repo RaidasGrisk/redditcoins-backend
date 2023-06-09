@@ -20,8 +20,10 @@ from other_ops.coins import get_coins
 
 
 def get_regex_pattern(coin_names: [str], coin_text: [str]) -> re.Pattern:
-    # TODO: explain the two parts
 
+    # There are two possible patterns we construct to match a mention.
+    # First - coin name, second - full coin name (or any other text associated with the coin)
+    # for example (1) ETH, (2) ethereum
     coin_name_regex_pattern = r'(^|\s|[$])(' + '|'.join(coin_names) + ')($|,|.|!|\s)'
     coin_text_regex_pattern = r'(?i:\b(?:' + '|'.join(coin_text) + r')\b)'
 
@@ -209,12 +211,6 @@ async def update_mentions(
             await conn.executemany(insert_sql, values)
 
 
-def date_string_to_timestamp(s: str) -> int:
-    date = datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
-    tuple = date.timetuple()
-    return int(time.mktime(tuple))
-
-
 if __name__ == '__main__':
 
     # parse args
@@ -227,6 +223,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # deal with args format
+
+    def date_string_to_timestamp(s: str) -> int:
+        date = datetime.datetime.strptime(s, '%Y-%m-%d %H:%M:%S')
+        tuple_ = date.timetuple()
+        return int(time.mktime(tuple_))
+
     args_dict = vars(args)
     if args_dict['start']:
         args_dict['start'] = date_string_to_timestamp(args_dict['start'])
