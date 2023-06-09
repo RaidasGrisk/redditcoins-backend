@@ -1,8 +1,7 @@
 """
 Posts a comment to the daily with a table of most mentioned coins
-
-Add this to crontab to run every x hours.
-0 */2 * * * python3 /home/mrraidas/reddit-to-db/other_ops/post_bot.py
+In prod this is added to a crantab
+10 2,8,14,20 * * * cd /app && python3 other_ops/post_bot.py
 """
 
 # to be able to launch this from terminal and crontab
@@ -41,7 +40,7 @@ def is_data_correct(data):
     if correct_date.strftime('%Y-%m-%d') != data_date:
         return False
 
-    # none of the above ifs hit than return true
+    # if none of the above ifs hit than return true
     return True
 
 
