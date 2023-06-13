@@ -1,2 +1,2 @@
 1 * * * * cd /app && python3 other_ops/update_mentions.py > /proc/1/fd/1 2>/proc/1/fd/2
-# 10 2,8,14,20 * * * cd /app && python3 other_ops/post_bot.py > /proc/1/fd/1 2>/proc/1/fd/2
+10 2,8,14,20 * * * cd /app && python3 other_ops/post_bot.py > /proc/1/fd/1 2>/proc/1/fd/2

@@ -23,21 +23,24 @@ def is_data_correct(data):
     """
 
     # check if popular coins are in the data
-    coins_to_check = ['BTC', 'ETH', 'ADA']
-    if not all(coin in data['cryptocurrency'].keys() for coin in coins_to_check):
+    coins_to_check = ['BTC', 'ETH']
+    if not all(coin in data.keys() for coin in coins_to_check):
+        print('Missing keys')
         return False
     
     # check if volume is not too low
-    btc_vol = data['cryptocurrency']['BTC']['data'][0]['volume']
-    eth_vol = data['cryptocurrency']['ETH']['data'][0]['volume']
+    btc_vol = data['BTC'][-1]['volume']
+    eth_vol = data['ETH'][-1]['volume']
     if btc_vol < 80 or eth_vol < 30:
+        print('low volume')
         return False
     
     # check if date is correct
     # the date should be today - 1 day.
-    data_date = data['cryptocurrency']['BTC']['data'][0]['time']
+    data_date = data['BTC'][-1]['time']
     correct_date = datetime.utcnow() - timedelta(days=1)
-    if correct_date.strftime('%Y-%m-%d') != data_date:
+    if correct_date.strftime('%Y-%m-%d') != data_date[:10]:
+        print('wrong date')
         return False
 
     # if none of the above ifs hit than return true
@@ -47,7 +50,7 @@ def is_data_correct(data):
 def make_comment():
 
     # get current data
-    url = 'https://redditcoins.app/api/volume/market_summary?gran=daily'
+    url = 'https://api-y7sbigyecq-uc.a.run.app/volume_market_summary?gran=daily'
     resp = requests.get(url)
     data = resp.json()
 
@@ -57,17 +60,14 @@ def make_comment():
         return False
 
     # parse data into df
-    data_dict = {
-        coin: data['cryptocurrency'][coin]['data'][0]['volume']
-        for coin in data['cryptocurrency']
-    }
+    data_dict = {coin: data[coin][-1]['volume'] for coin in data}
     sorted_coins = sorted(data_dict, key=data_dict.get, reverse=True)
 
     # parse data into string (comment)
     # messy due to \n and reddit markdown
     # '  \n' makes new line
     # '\n\n' makes new paragraph
-    current_date = data['cryptocurrency']['BTC']['data'][0]['time']
+    current_date = data['BTC'][-1]['time']
     comment = (
         f'''Most mentions on r/cc ({current_date}):\n\n'''
         '''||Mentions|  \n'''
