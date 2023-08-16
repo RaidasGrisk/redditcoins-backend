@@ -207,10 +207,10 @@ def manual_coins():
             'name': [],
             'other': ['Optimism']
         },
-        'NFT': {
-            'name': ['NFT'],
-            'other': ['non fungible token, non-fungible token']
-        },
+        # 'NFT': {
+        #     'name': ['NFT'],
+        #     'other': ['non fungible token, non-fungible token']
+        # },
         'FTT': {
             'name': ['FTT'],
             'other': []
@@ -235,6 +235,10 @@ def manual_coins():
             'name': ['AIDOGE'],
             'other': []
         },
+        'BRICK': {
+            'name': ['BRICK', 'BRICKS'],
+            'other': []
+        }
     }
 
 
