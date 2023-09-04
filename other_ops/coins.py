@@ -238,7 +238,11 @@ def manual_coins():
         'BRICK': {
             'name': ['BRICK', 'BRICKS'],
             'other': []
-        }
+        },
+        'BAN': {
+            'name': ['BANANO'],
+            'other': []
+        },
     }
 
 
