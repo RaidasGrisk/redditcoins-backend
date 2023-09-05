@@ -240,8 +240,8 @@ def manual_coins():
             'other': []
         },
         'BAN': {
-            'name': ['BANANO'],
-            'other': []
+            'name': ['BAN'],
+            'other': ['Banano']
         },
     }
 
