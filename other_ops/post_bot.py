@@ -92,7 +92,7 @@ async def post_comment_on_reddit(comment):
                 # find the submission we want. Not very convenient,
                 # but can't quickly find the patter I should be using
                 # so lets just look for partial title match
-                if 'Daily General Discussion' in submission.title:
+                if 'Daily Crypto Discussion' in submission.title:
                     await submission.reply(comment)
                     return
 
