@@ -11,7 +11,7 @@ sys.path.append(os.getcwd())
 
 import asyncio
 import asyncpraw
-from private import reddit_login
+from private import reddit_details
 import requests
 from datetime import datetime, timedelta
 
