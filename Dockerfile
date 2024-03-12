@@ -1,6 +1,7 @@
 # docker build -t eu.gcr.io/reddit-app-308612/backend .
 # docker push eu.gcr.io/reddit-app-308612/backend
 # docker pull eu.gcr.io/reddit-app-308612/backend
+# docker run -d eu.gcr.io/reddit-app-308612/backend
 
 FROM ubuntu:latest
 
