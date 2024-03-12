@@ -85,7 +85,7 @@ def make_comment():
 
 async def post_comment_on_reddit(comment):
     if comment:
-        reddit = asyncpraw.Reddit(**reddit_login)
+        reddit = asyncpraw.Reddit(**reddit_details)
         subreddit = await reddit.subreddit('cryptocurrency')
         async with reddit:
             async for submission in subreddit.hot(limit=50):
