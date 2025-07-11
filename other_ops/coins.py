@@ -197,6 +197,10 @@ def manual_coins():
             'name': ['SONIC'],
             'other': []
         },
+        'ATH': {
+            'name': [],
+            'other': ['Aethir']
+        },
     }
 
 
