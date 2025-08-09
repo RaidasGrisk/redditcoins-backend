@@ -201,6 +201,10 @@ def manual_coins():
             'name': [],
             'other': ['Aethir']
         },
+        'HYPE': {
+            'name': [],
+            'other': ['hyperliquid']
+        },
     }
 
 
